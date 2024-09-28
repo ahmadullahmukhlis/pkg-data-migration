@@ -595,6 +595,6 @@ class exportController extends Controller
 
 
         // Return a success response or the path to the saved file
-        return response()->json(['message' => 'Data exported successfully!', 'file' => $filePath]);
+        return response()->json(['message' => 'Data exported successfully!', 'file' => $productJsonData, 'order' => $orderJsonData]);
     }
 }
