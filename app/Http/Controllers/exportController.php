@@ -232,7 +232,7 @@ class exportController extends Controller
     public function insertCustomer()
     {
         // Define the file path for the JSON file
-        $filePath = storage_path('app/public/ppcustomer_seeder.json');
+        $filePath = storage_path('app/ppcustomer_seeder.json');
 
         // Check if the file exists
         if (!File::exists($filePath)) {
@@ -358,7 +358,7 @@ class exportController extends Controller
             // Map the data for each customer
             $mappedData[] = [
                 'id' => $customer->CustId,
-                'customer_name' => $customer->CustContactPerson,
+                'customer_name' => $customer->CustName,
                 'contact_person' => $customer->CustContactPerson,
                 'job_title' => $customer->CustPostion,
                 'gender' => 'male',
@@ -389,7 +389,7 @@ class exportController extends Controller
         }
 
         // Define the file path for the JSON file
-        $filePath = storage_path('app/public/ppcustomer_seeder.json');
+        $filePath = storage_path('app/ppcustomer_seeder.json');
 
         // Convert the mapped data into JSON format
         $jsonData = json_encode([
@@ -413,10 +413,8 @@ class exportController extends Controller
         foreach ($ppCustomers as $customer) {
             // Use parameterized queries to avoid SQL injection
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', $customer->CustName)->where('contact_person', $customer->CustContactPerson)->where('created_at', $customer->CusRegistrationDate)
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
                 ->value('id');
-
-            // Map the data for each customer
             $mappedData[] = [
                 'work_phone' => $customer->CustWorkPhone,
                 'personal_phone' => null,
@@ -433,7 +431,7 @@ class exportController extends Controller
         }
 
         // Define the file path for the JSON file
-        $filePath = storage_path('app/public/contacts.json');
+        $filePath = storage_path('app/contacts.json');
 
         // Convert the mapped data into JSON format
         $jsonData = json_encode([
@@ -447,5 +445,45 @@ class exportController extends Controller
 
         // Return a success response or the path to the saved file
         return response()->json(['message' => 'Data exported successfully!', 'file' => $filePath]);
+    }
+    public function insertContact()
+    {
+        $filePath = storage_path('app/contacts.json');
+
+        // Retrieve the contents of the JSON file
+        $json = File::get($filePath);
+        $jsonData = json_decode($json, true);
+
+        // Validate the JSON structure
+        if (!is_array($jsonData) || !isset($jsonData['data'])) {
+            return response()->json(['error' => 'Invalid JSON structure'], 400);
+        }
+
+        // Loop through each item in the JSON data
+        foreach ($jsonData['data'] as $item) {
+
+            $createdAt = Carbon::parse($item['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s');
+
+            // Insert data into the 'contacts' table using a parameterized query
+            DB::insert('INSERT INTO `baheer-group-for-test`.`contacts`
+                    (work_phone, personal_phone, whatsapp, main_email, cc_email, website_url, contactable_type, contactable_id, created_by, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $item['work_phone'],
+                $item['personal_phone'],
+                $item['whatsapp'],
+                $item['main_email'],
+                $item['cc_email'],
+                $item['website_url'],
+                $item['contactable_type'],
+                $item['contactable_id'],
+                $item['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Return a success response
+        return response()->json(['message' => 'Data saved successfully!']);
     }
 }
