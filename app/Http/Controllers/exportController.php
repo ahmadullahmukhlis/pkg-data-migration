@@ -486,4 +486,115 @@ class exportController extends Controller
         // Return a success response
         return response()->json(['message' => 'Data saved successfully!']);
     }
+    public function product()
+    {
+        // Retrieve all customers from the ppcustomer table
+        $cartons = DB::table('carton')->get();
+        $ProductmappedData = [];
+        $ordermappedData = [];
+
+        foreach ($cartons as $carton) {
+            // Use parameterized queries to avoid SQL injection
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $carton->CustName . '%')->where('created_at', $carton->CusRegistrationDate)
+                ->value('id');
+            $ProductmappedData[] = [
+                'id' => $carton->CustWorkPhone,
+                'product_code' => null,
+                'customer_id' => $carton->CmpWhatsApp,
+                'branch' => $carton->CustEmail,
+                'product_status' => null,
+                'product_name' => $carton->CustWebsite,
+                'product_type' => 'App\Models\Bgpkg\BgpkgCustomer',
+                'length' => $new_customer,
+                'height' => null,
+                'width' => null,
+                'carton_type' => null,
+                'flute_type' => null,
+                'die_cut' => null,
+                'pasting' => null,
+                'sloted' => null,
+                'stitching' => null,
+                'stitching_type' => null,
+                'flexo_p' => null,
+                'offset_p' => null,
+                'glue' => null,
+                'glue_type' => null,
+                'color' => null,
+                'polymer' => null,
+                'polymer_price' => null,
+                'die' => null,
+
+                'die_type' => null,
+                'die_price' => null,
+                'flap_type' => null,
+                'flap_length' => null,
+                'flap_width' => null,
+                'tax' => null,
+                'payment_term_id' => null,
+                'payment_method_id' => null,
+                'design_type' => null,
+                'paper_weight' => null,
+                'waste_weight' => null,
+                'sheet_size' => null,
+                'deadline' => null,
+                'job_card_note' => null,
+                'quotation_note' => null,
+                'produced_quantity' => null,
+                'stockout_quantity' => null,
+                'agreement' => null,
+                'created_by' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            $ordermappedData[] = [
+                'id' => $carton->CustWorkPhone,
+                'product_id' => null,
+                'order_type' => $carton->CmpWhatsApp,
+                'order_quantity' => $carton->CustEmail,
+                'currency' => null,
+                'manual_grade' => $carton->CustWebsite,
+                'unit_price' => 'App\Models\Bgpkg\BgpkgCustomer',
+                'total_price' => $new_customer,
+                'glue_cost' => null,
+                'die_cost' => null,
+                'polymer_cost' => null,
+                'labor_cost' => null,
+                'paper_cost' => null,
+                'waste_cost' => null,
+                'electricity_cost' => null,
+                'profit_cost' => null,
+                'depreciation' => null,
+                'exchange_rate' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // Define the file path for the JSON file
+        $productJson = storage_path('app/products.json');
+        $orderJson = storage_path('app/orders.json');
+
+
+        // Convert the mapped data into JSON format
+        $productJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'products',
+            'data' => $ProductmappedData,
+        ], JSON_PRETTY_PRINT);
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'orders',
+            'data' => $ordermappedData,
+        ], JSON_PRETTY_PRINT);
+
+        // Save the JSON data to a file
+        File::put($productJson, $productJsonData);
+        File::put($orderJson, $orderJsonData);
+
+
+        // Return a success response or the path to the saved file
+        return response()->json(['message' => 'Data exported successfully!', 'file' => $filePath]);
+    }
 }
