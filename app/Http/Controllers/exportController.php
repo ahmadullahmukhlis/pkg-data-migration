@@ -404,4 +404,48 @@ class exportController extends Controller
         // Return a success response or the path to the saved file
         return response()->json(['message' => 'Data exported successfully!', 'file' => $filePath]);
     }
+    public function contact()
+    {
+        // Retrieve all customers from the ppcustomer table
+        $ppCustomers = DB::table('ppcustomer')->get();
+        $mappedData = [];
+
+        foreach ($ppCustomers as $customer) {
+            // Use parameterized queries to avoid SQL injection
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', $customer->CustName)->where('contact_person', $customer->CustContactPerson)->where('created_at', $customer->CusRegistrationDate)
+                ->value('id');
+
+            // Map the data for each customer
+            $mappedData[] = [
+                'work_phone' => $customer->CustWorkPhone,
+                'personal_phone' => null,
+                'whatsapp' => $customer->CmpWhatsApp,
+                'main_email' => $customer->CustEmail,
+                'cc_email' => null,
+                'website_url' => $customer->CustWebsite,
+                'contactable_type' => 'App\Models\Bgpkg\BgpkgCustomer',
+                'contactable_id' => $new_customer,
+                'created_by' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // Define the file path for the JSON file
+        $filePath = storage_path('app/public/contacts.json');
+
+        // Convert the mapped data into JSON format
+        $jsonData = json_encode([
+            'type' => 'table',
+            'name' => 'contacts',
+            'data' => $mappedData,
+        ], JSON_PRETTY_PRINT);
+
+        // Save the JSON data to a file
+        File::put($filePath, $jsonData);
+
+        // Return a success response or the path to the saved file
+        return response()->json(['message' => 'Data exported successfully!', 'file' => $filePath]);
+    }
 }
