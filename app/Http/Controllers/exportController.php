@@ -495,16 +495,17 @@ class exportController extends Controller
 
         foreach ($cartons as $carton) {
             // Use parameterized queries to avoid SQL injection
+            $customer= DB::table(' ppcustomer')->where('CustId',$carton->CustId1)->first();
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $carton->CustName . '%')->where('created_at', $carton->CusRegistrationDate)
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
                 ->value('id');
             $ProductmappedData[] = [
                 'id' => $carton->CustWorkPhone,
                 'product_code' => null,
                 'customer_id' => $carton->CmpWhatsApp,
-                'branch' => $carton->CustEmail,
+                'branch' => 1,
                 'product_status' => null,
-                'product_name' => $carton->CustWebsite,
+                'product_name' => $carton->CTNType,
                 'product_type' => 'App\Models\Bgpkg\BgpkgCustomer',
                 'length' => $new_customer,
                 'height' => null,
