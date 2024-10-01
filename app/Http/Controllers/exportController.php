@@ -498,18 +498,18 @@ class exportController extends Controller
             $customer= DB::table(' ppcustomer')->where('CustId',$carton->CustId1)->first();
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
                 ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
-                ->value('id');
+                ->first();
             $ProductmappedData[] = [
                 'id' => $carton->CustWorkPhone,
                 'product_code' => null,
-                'customer_id' => $carton->CmpWhatsApp,
-                'branch' => 1,
-                'product_status' => null,
+                'customer_id' => $new_customer->id,
+                'branch' => $new_customer->branch_id,
+                'product_status' => $carton->CTNStatus,
                 'product_name' => $carton->CTNType,
-                'product_type' => 'App\Models\Bgpkg\BgpkgCustomer',
-                'length' => $new_customer,
-                'height' => null,
-                'width' => null,
+                'product_type' => $carton->CTNType,
+                'length' => $carton->CTNWidth,
+                'height' => $carton->CTNHeight,
+                'width' => $carton->CTNLength ,
                 'carton_type' => null,
                 'flute_type' => null,
                 'die_cut' => null,
