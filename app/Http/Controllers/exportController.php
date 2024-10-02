@@ -492,6 +492,7 @@ class exportController extends Controller
         $cartons = DB::table('carton')->get();
         $ProductmappedData = [];
         $ordermappedData = [];
+        $detials = [];
 
         foreach ($cartons as $carton) {
             // Use parameterized queries to avoid SQL injection
@@ -551,26 +552,35 @@ class exportController extends Controller
 
             $ordermappedData[] = [
                 'id' => $carton->CTNId,
-                'product_id' => null,
-                'order_type' => $carton->CmpWhatsApp,
-                'order_quantity' => $carton->CustEmail,
-                'currency' => null,
-                'manual_grade' => $carton->CustWebsite,
-                'unit_price' => 'App\Models\Bgpkg\BgpkgCustomer',
-                'total_price' => $new_customer,
+                'product_id' => $carton->CTNId,
+                'order_type' => null,
+                'order_quantity' => $carton->CTNQTY,
+                'currency' => $carton->CtnCurrency,
+                'manual_grade' => 50,
+                'unit_price' => $carton->CTNPrice,
+                'total_price' => $carton->CTNTotalPrice,
                 'glue_cost' => null,
-                'die_cost' => null,
-                'polymer_cost' => null,
+                'die_cost' => $carton->CTNDiePrice,
+                'polymer_cost' => $carton->CTNPolimarPrice,
                 'labor_cost' => null,
                 'paper_cost' => null,
                 'waste_cost' => null,
                 'electricity_cost' => null,
                 'profit_cost' => null,
                 'depreciation' => null,
-                'exchange_rate' => null,
-                'created_at' => now(),
+                'exchange_rate' => $carton->PexchangeUSD,
+                'created_at' => $carton->CTNOrderDate,
                 'updated_at' => now(),
             ];
+            for ($i = 1; $i <= $carton->CTNType; $i++) {
+                $ordermappedData[] = [
+                    'product_id' => $carton->CTNId,
+                    'paper_name' => $carton->Ctnp . $i,
+                    'paper_gsm' => $carton->CTNQTY,
+                    'created_at' => $carton->CTNOrderDate,
+                    'updated_at' => now(),
+                ];
+            }
         }
 
         // Define the file path for the JSON file
