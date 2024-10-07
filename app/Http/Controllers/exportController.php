@@ -496,7 +496,7 @@ class exportController extends Controller
 
         foreach ($cartons as $carton) {
             // Use parameterized queries to avoid SQL injection
-            $customer = DB::table(' ppcustomer')->where('CustId', $carton->CustId1)->first();
+            $customer = DB::table('ppcustomer')->where('CustId', $carton->CustId1)->first();
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
                 ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
                 ->first();
@@ -573,19 +573,23 @@ class exportController extends Controller
                 'updated_at' => now(),
             ];
             for ($i = 1; $i <= $carton->CTNType; $i++) {
-                $ordermappedData[] = [
-                    'product_id' => $carton->CTNId,
-                    'paper_name' => $carton->Ctnp . $i,
-                    'paper_gsm' => $carton->CTNQTY,
-                    'created_at' => $carton->CTNOrderDate,
-                    'updated_at' => now(),
-                ];
+                if (isset($carton->{'CTNType' . $i}) && isset($carton->{'PaperP' . $i})) {
+                    $detials[] = [
+                        'product_id' => $carton->CTNId,
+                        'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
+                        'paper_gsm' => 125,
+                        'paper_price' => $carton->{'PaperP' . $i},
+                        'created_at' => $carton->{'CTNType' . $i},
+                        'updated_at' => now(),
+                    ];
+                }
             }
         }
 
         // Define the file path for the JSON file
         $productJson = storage_path('app/products.json');
         $orderJson = storage_path('app/orders.json');
+        $paper = storage_path('app/bgpkg_product_details.json');
 
 
         // Convert the mapped data into JSON format
@@ -599,10 +603,16 @@ class exportController extends Controller
             'name' => 'orders',
             'data' => $ordermappedData,
         ], JSON_PRETTY_PRINT);
+        $productdetialjson = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_product_details',
+            'data' => $detials,
+        ], JSON_PRETTY_PRINT);
 
         // Save the JSON data to a file
         File::put($productJson, $productJsonData);
         File::put($orderJson, $orderJsonData);
+        File::put($paper, $productdetialjson);
 
 
         // Return a success response or the path to the saved file
