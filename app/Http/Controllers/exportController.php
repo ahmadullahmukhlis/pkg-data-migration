@@ -742,7 +742,6 @@ class exportController extends Controller
         $totalProcessed = 0;
 
         $detials = [];
-        $total = 1;
 
         // Process cartons in batches
         for ($offset = 0; $offset < $totalCartons; $offset += $batchSize) {
