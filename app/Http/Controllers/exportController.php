@@ -618,4 +618,142 @@ class exportController extends Controller
         // Return a success response or the path to the saved file
         return response()->json(['message' => 'Data exported successfully!', 'file' => $productJsonData, 'order' => $orderJsonData]);
     }
+    public function insertProduct()
+    {
+        // Define file paths for JSON files
+        $productFilePath = storage_path('app/products.json');
+        $orderFilePath = storage_path('app/orders.json');
+        $productDetailsFilePath = storage_path('app/bgpkg_product_details.json');
+
+        // Retrieve and parse the contents of each JSON file
+        $productJson = File::get($productFilePath);
+        $productJsonData = json_decode($productJson, true);
+        $orderJson = File::get($orderFilePath);
+        $orderJsonData = json_decode($orderJson, true);
+        $productDetailsJson = File::get($productDetailsFilePath);
+        $productDetailsJsonData = json_decode($productDetailsJson, true);
+
+        // Validate JSON structure for products
+        if (!is_array($productJsonData) || !isset($productJsonData['data'])) {
+            return response()->json(['error' => 'Invalid products JSON structure'], 400);
+        }
+
+        // Insert products into the 'products' table
+        foreach ($productJsonData['data'] as $item) {
+            $createdAt = isset($item['created_at']) ? Carbon::parse($item['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_products`
+                (id, product_code, customer_id, branch, product_status, product_name, product_type, length, height, width, carton_type, flute_type, die_cut, pasting, sloted, stitching, stitching_type, flexo_p, offset_p, glue, glue_type, color, polymer, polymer_price, die, die_type, die_price, flap_type, flap_length, flap_width, tax, payment_term_id, payment_method_id, design_type, paper_weight, waste_weight, sheet_size, deadline, job_card_note, quotation_note, produced_quantity, stockout_quantity, agreement, created_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $item['id'],
+                $item['product_code'],
+                $item['customer_id'],
+                $item['branch'],
+                $item['product_status'],
+                $item['product_name'],
+                $item['product_type'],
+                $item['length'],
+                $item['height'],
+                $item['width'],
+                $item['carton_type'],
+                $item['flute_type'],
+                $item['die_cut'],
+                $item['pasting'],
+                $item['sloted'],
+                $item['stitching'],
+                $item['stitching_type'],
+                $item['flexo_p'],
+                $item['offset_p'],
+                $item['glue'],
+                $item['glue_type'],
+                $item['color'],
+                $item['polymer'],
+                $item['polymer_price'],
+                $item['die'],
+                $item['die_type'],
+                $item['die_price'],
+                $item['flap_type'],
+                $item['flap_length'],
+                $item['flap_width'],
+                $item['tax'],
+                $item['payment_term_id'],
+                $item['payment_method_id'],
+                $item['design_type'],
+                $item['paper_weight'],
+                $item['waste_weight'],
+                $item['sheet_size'],
+                $item['deadline'],
+                $item['job_card_note'],
+                $item['quotation_note'],
+                $item['produced_quantity'],
+                $item['stockout_quantity'],
+                $item['agreement'],
+                $item['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Validate JSON structure for orders
+        if (!is_array($orderJsonData) || !isset($orderJsonData['data'])) {
+            return response()->json(['error' => 'Invalid orders JSON structure'], 400);
+        }
+
+        // Insert orders into the 'orders' table
+        foreach ($orderJsonData['data'] as $item) {
+            $createdAt = isset($item['created_at']) ? Carbon::parse($item['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_orders`
+                (id, product_id, order_type, order_quantity, currency, manual_grade, unit_price, total_price, glue_cost, die_cost, polymer_cost, labor_cost, paper_cost, waste_cost, electricity_cost, profit_cost, depreciation, exchange_rate, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $item['id'],
+                $item['product_id'],
+                $item['order_type'],
+                $item['order_quantity'],
+                $item['currency'],
+                $item['manual_grade'],
+                $item['unit_price'],
+                $item['total_price'],
+                $item['glue_cost'],
+                $item['die_cost'],
+                $item['polymer_cost'],
+                $item['labor_cost'],
+                $item['paper_cost'],
+                $item['waste_cost'],
+                $item['electricity_cost'],
+                $item['profit_cost'],
+                $item['depreciation'],
+                $item['exchange_rate'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Validate JSON structure for product details
+        if (!is_array($productDetailsJsonData) || !isset($productDetailsJsonData['data'])) {
+            return response()->json(['error' => 'Invalid product details JSON structure'], 400);
+        }
+
+        // Insert product details into the 'bgpkg_product_details' table
+        foreach ($productDetailsJsonData['data'] as $item) {
+            $createdAt = isset($item['created_at']) ? Carbon::parse($item['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_product_details`
+                (product_id, paper_name, paper_gsm, paper_price, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)', [
+                $item['product_id'],
+                $item['paper_name'],
+                $item['paper_gsm'],
+                $item['paper_price'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Return a success response
+        return response()->json(['message' => 'Products, orders, and product details saved successfully!']);
+    }
 }
