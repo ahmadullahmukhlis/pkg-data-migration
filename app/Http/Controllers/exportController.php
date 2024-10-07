@@ -486,138 +486,335 @@ class exportController extends Controller
         // Return a success response
         return response()->json(['message' => 'Data saved successfully!']);
     }
+    // public function product()
+    // {
+    //     // Retrieve all customers from the ppcustomer table
+    //     $cartons = DB::table('carton')->get();
+    //     $ProductmappedData = [];
+    //     $ordermappedData = [];
+    //     $detials = [];
+
+    //     foreach ($cartons as $carton) {
+    //         $customer = DB::table('ppcustomer')->where('CustId', $carton->CustId1)->first();
+    //         if (!$customer) {
+    //             continue;
+    //         }
+
+    //         $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+    //             ->where('customer_name', 'like', '%' . $customer->CustName . '%')
+    //             ->where('created_at', $customer->CusRegistrationDate)
+    //             ->first();
+
+    //         if (!$new_customer) {
+    //             continue; // Skip if new_customer not found
+    //         }
+
+    //         // Product mapped data
+    //         $ProductmappedData[] = [
+    //             'id' => $carton->CTNId,
+    //             'product_code' => null,
+    //             'customer_id' => $new_customer->id,
+    //             'branch' => $new_customer->branch_id,
+    //             'product_status' => $carton->CTNStatus,
+    //             'product_name' => $carton->ProductName,
+    //             'product_type' => $carton->CTNUnit,
+    //             'length' => $carton->CTNWidth,
+    //             'height' => $carton->CTNHeight,
+    //             'width' => $carton->CTNLength,
+    //             'carton_type' => $carton->CTNType,
+    //             'flute_type' => $carton->CFluteType,
+    //             'die_cut' => $carton->CDieCut,
+    //             'pasting' => $carton->CPasting,
+    //             'sloted' => $carton->CSlotted,
+    //             'stitching' => $carton->CStitching,
+    //             'stitching_type' => null,
+    //             'flexo_p' => $carton->flexop,
+    //             'offset_p' => $carton->offesetp,
+    //             'glue' => null,
+    //             'glue_type' => null,
+    //             'color' => $carton->CTNColor,
+    //             'polymer' => $carton->polymer_info,
+    //             'polymer_price' => $carton->CTNPolimarPrice,
+    //             'die' => $carton->die_info,
+    //             'die_type' => null,
+    //             'die_price' => $carton->CTNDiePrice,
+    //             'flap_type' => $carton->NoFlip,
+    //             'flap_length' => null,
+    //             'flap_width' => null,
+    //             'tax' => $carton->Tax,
+    //             'payment_term_id' => 1,
+    //             'payment_method_id' => 1,
+    //             'design_type' => null,
+    //             'paper_weight' => null,
+    //             'waste_weight' => null,
+    //             'sheet_size' => null,
+    //             'deadline' => null,
+    //             'job_card_note' => $carton->Note,
+    //             'quotation_note' => $carton->MarketingNote,
+    //             'produced_quantity' => $carton->ProductQTY,
+    //             'stockout_quantity' => null,
+    //             'agreement' => null,
+    //             'created_by' => null,
+    //             'created_at' => now(),
+    //             'updated_at' => now(),
+    //         ];
+
+    //         // Order mapped data
+    //         $ordermappedData[] = [
+    //             'id' => $carton->CTNId,
+    //             'product_id' => $carton->CTNId,
+    //             'order_type' => null,
+    //             'order_quantity' => $carton->CTNQTY,
+    //             'currency' => $carton->CtnCurrency,
+    //             'manual_grade' => 50,
+    //             'unit_price' => $carton->CTNPrice,
+    //             'total_price' => $carton->CTNTotalPrice,
+    //             'glue_cost' => null,
+    //             'die_cost' => $carton->CTNDiePrice,
+    //             'polymer_cost' => $carton->CTNPolimarPrice,
+    //             'labor_cost' => null,
+    //             'paper_cost' => null,
+    //             'waste_cost' => null,
+    //             'electricity_cost' => null,
+    //             'profit_cost' => null,
+    //             'depreciation' => null,
+    //             'exchange_rate' => $carton->PexchangeUSD,
+    //             'created_at' => $carton->CTNOrderDate ?? now(),
+    //             'updated_at' => now(),
+    //         ];
+
+    //         // Details mapped data
+    //         for ($i = 1; $i <= $carton->CTNType; $i++) {
+    //             // Check if dynamic properties like CTNType1, PaperP1, etc. exist before using them
+    //             $typeKey = 'CTNType' . $i;
+    //             $paperPriceKey = 'PaperP' . $i;
+
+    //             if (isset($carton->$typeKey) && isset($carton->$paperPriceKey)) {
+    //                 $detials[] = [
+    //                     'product_id' => $carton->CTNId,
+    //                     'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
+    //                     'paper_gsm' => 125,
+    //                     'paper_price' => $carton->$paperPriceKey,
+    //                     'created_at' => now(),
+    //                     'updated_at' => now(),
+    //                 ];
+    //             }
+    //         }
+    //     }
+
+    //     // Define the file paths for the JSON files
+    //     $productJson = storage_path('app/products.json');
+    //     $orderJson = storage_path('app/orders.json');
+    //     $paperJson = storage_path('app/bgpkg_product_details.json');
+
+    //     // Convert the mapped data into JSON format
+    //     $productJsonData = json_encode([
+    //         'type' => 'table',
+    //         'name' => 'products',
+    //         'data' => $ProductmappedData,
+    //     ], JSON_PRETTY_PRINT);
+
+    //     $orderJsonData = json_encode([
+    //         'type' => 'table',
+    //         'name' => 'orders',
+    //         'data' => $ordermappedData,
+    //     ], JSON_PRETTY_PRINT);
+
+    //     $productDetailsJsonData = json_encode([
+    //         'type' => 'table',
+    //         'name' => 'bgpkg_product_details',
+    //         'data' => $detials,
+    //     ], JSON_PRETTY_PRINT);
+
+    //     // Save the JSON data to a file
+    //     File::put($productJson, $productJsonData);
+    //     File::put($orderJson, $orderJsonData);
+    //     File::put($paperJson, $productDetailsJsonData);
+
+    //     // Return a success response with file paths and JSON data
+    //     return response()->json([
+    //         'message' => 'Data exported successfully!',
+    //         'product_file' => $productJson,
+    //         'order_file' => $orderJson,
+    //         'details_file' => $paperJson,
+    //         'product_json' => $ProductmappedData,
+    //         'order_json' => $ordermappedData,
+    //         'details_json' => $detials,
+    //     ]);
+    // }
+    public function mapProductData($carton, $new_customer)
+    {
+        return [
+            'id' => $carton->CTNId,
+            'product_code' => null,
+            'customer_id' => $new_customer->id,
+            'branch' => $new_customer->branch_id,
+            'product_status' => $carton->CTNStatus,
+            'product_name' => $carton->ProductName,
+            'product_type' => $carton->CTNUnit,
+            'length' => $carton->CTNWidth,
+            'height' => $carton->CTNHeight,
+            'width' => $carton->CTNLength,
+            'carton_type' => $carton->CTNType,
+            'flute_type' => $carton->CFluteType,
+            'die_cut' => $carton->CDieCut,
+            'pasting' => $carton->CPasting,
+            'sloted' => $carton->CSlotted,
+            'stitching' => $carton->CStitching,
+            'stitching_type' => null,
+            'flexo_p' => $carton->flexop,
+            'offset_p' => $carton->offesetp,
+            'glue' => null,
+            'glue_type' => null,
+            'color' => $carton->CTNColor,
+            'polymer' => $carton->polymer_info,
+            'polymer_price' => $carton->CTNPolimarPrice,
+            'die' => $carton->die_info,
+            'die_type' => null,
+            'die_price' => $carton->CTNDiePrice,
+            'flap_type' => $carton->NoFlip,
+            'flap_length' => null,
+            'flap_width' => null,
+            'tax' => $carton->Tax,
+            'payment_term_id' => 1,
+            'payment_method_id' => 1,
+            'design_type' => null,
+            'paper_weight' => null,
+            'waste_weight' => null,
+            'sheet_size' => null,
+            'deadline' => null,
+            'job_card_note' => $carton->Note,
+            'quotation_note' => $carton->MarketingNote,
+            'produced_quantity' => $carton->ProductQTY,
+            'stockout_quantity' => null,
+            'agreement' => null,
+            'created_by' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+    }
+    public function mapOrderData($carton)
+    {
+        return [
+            'id' => $carton->CTNId,
+            'product_id' => $carton->CTNId,
+            'order_type' => null,
+            'order_quantity' => $carton->CTNQTY,
+            'currency' => $carton->CtnCurrency,
+            'manual_grade' => 50,
+            'unit_price' => $carton->CTNPrice,
+            'total_price' => $carton->CTNTotalPrice,
+            'glue_cost' => null,
+            'die_cost' => $carton->CTNDiePrice,
+            'polymer_cost' => $carton->CTNPolimarPrice,
+            'labor_cost' => null,
+            'paper_cost' => null,
+            'waste_cost' => null,
+            'electricity_cost' => null,
+            'profit_cost' => null,
+            'depreciation' => null,
+            'exchange_rate' => $carton->PexchangeUSD,
+            'created_at' => $carton->CTNOrderDate ?? now(),
+            'updated_at' => now(),
+        ];
+    }
+    public function mapPaperDetailsData($carton)
+    {
+        $detials = [];
+
+        for ($i = 1; $i <= $carton->CTNType; $i++) {
+            $typeKey = 'CTNType' . $i;
+            $paperPriceKey = 'PaperP' . $i;
+
+            if (isset($carton->$typeKey) && isset($carton->$paperPriceKey)) {
+                $detials[] = [
+                    'product_id' => $carton->CTNId,
+                    'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
+                    'paper_gsm' => 125,
+                    'paper_price' => $carton->$paperPriceKey,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        return $detials;
+    }
     public function product()
     {
-        // Retrieve all customers from the ppcustomer table
+        // Retrieve all cartons from the carton table
         $cartons = DB::table('carton')->get();
+
+        // Initialize arrays for the mapped data
         $ProductmappedData = [];
         $ordermappedData = [];
         $detials = [];
 
+        // Iterate over the cartons and map the data
         foreach ($cartons as $carton) {
-            // Use parameterized queries to avoid SQL injection
+            // Fetch customer data
             $customer = DB::table('ppcustomer')->where('CustId', $carton->CustId1)->first();
-            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
-                ->first();
-            $ProductmappedData[] = [
-                'id' => $carton->CTNId,
-                'product_code' => null,
-                'customer_id' => $new_customer->id,
-                'branch' => $new_customer->branch_id,
-                'product_status' => $carton->CTNStatus,
-                'product_name' => $carton->ProductName,
-                'product_type' => $carton->CTNUnit,
-                'length' => $carton->CTNWidth,
-                'height' => $carton->CTNHeight,
-                'width' => $carton->CTNLength,
-                'carton_type' => $carton->CTNType,
-                'flute_type' => $carton->CFluteType,
-                'die_cut' => $carton->CDieCut,
-                'pasting' => $carton->CPasting,
-                'sloted' => $carton->CSlotted,
-                'stitching' => $carton->CStitching,
-                'stitching_type' => null,
-                'flexo_p' => $carton->flexop,
-                'offset_p' => $carton->offesetp,
-                'glue' => null,
-                'glue_type' => null,
-                'color' => $carton->CTNColor,
-                'polymer' => $carton->polymer_info,
-                'polymer_price' => $carton->CTNPolimarPrice,
-                'die' => $carton->die_info,
-
-                'die_type' => null,
-                'die_price' => $carton->CTNDiePrice,
-                'flap_type' => $carton->NoFlip,
-                'flap_length' => null,
-                'flap_width' => null,
-                'tax' => $carton->Tax,
-                'payment_term_id' => 1,
-                'payment_method_id' => 1,
-                'design_type' => null,
-                'paper_weight' => null,
-                'waste_weight' => null,
-                'sheet_size' => null,
-                'deadline' => null,
-                'job_card_note' => $carton->Note,
-                'quotation_note' => $carton->MarketingNote,
-                'produced_quantity' => $carton->ProductQTY,
-                'stockout_quantity' => null,
-                'agreement' => null,
-                'created_by' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $ordermappedData[] = [
-                'id' => $carton->CTNId,
-                'product_id' => $carton->CTNId,
-                'order_type' => null,
-                'order_quantity' => $carton->CTNQTY,
-                'currency' => $carton->CtnCurrency,
-                'manual_grade' => 50,
-                'unit_price' => $carton->CTNPrice,
-                'total_price' => $carton->CTNTotalPrice,
-                'glue_cost' => null,
-                'die_cost' => $carton->CTNDiePrice,
-                'polymer_cost' => $carton->CTNPolimarPrice,
-                'labor_cost' => null,
-                'paper_cost' => null,
-                'waste_cost' => null,
-                'electricity_cost' => null,
-                'profit_cost' => null,
-                'depreciation' => null,
-                'exchange_rate' => $carton->PexchangeUSD,
-                'created_at' => $carton->CTNOrderDate,
-                'updated_at' => now(),
-            ];
-            for ($i = 1; $i <= $carton->CTNType; $i++) {
-                if (isset($carton->{'CTNType' . $i}) && isset($carton->{'PaperP' . $i})) {
-                    $detials[] = [
-                        'product_id' => $carton->CTNId,
-                        'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
-                        'paper_gsm' => 125,
-                        'paper_price' => $carton->{'PaperP' . $i},
-                        'created_at' => $carton->{'CTNType' . $i},
-                        'updated_at' => now(),
-                    ];
-                }
+            if (!$customer) {
+                continue;
             }
+
+            // Fetch new customer data
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
+                ->where('created_at', $customer->CusRegistrationDate)
+                ->first();
+
+            if (!$new_customer) {
+                continue; // Skip if new_customer not found
+            }
+
+            // Map product, order, and paper details data
+            $ProductmappedData[] = $this->mapProductData($carton, $new_customer);
+            $ordermappedData[] = $this->mapOrderData($carton);
+            $detials = array_merge($detials, $this->mapPaperDetailsData($carton)); // Append multiple paper details
         }
 
-        // Define the file path for the JSON file
+        // Define file paths
         $productJson = storage_path('app/products.json');
         $orderJson = storage_path('app/orders.json');
-        $paper = storage_path('app/bgpkg_product_details.json');
+        $paperJson = storage_path('app/bgpkg_product_details.json');
 
-
-        // Convert the mapped data into JSON format
+        // Convert mapped data to JSON
         $productJsonData = json_encode([
             'type' => 'table',
             'name' => 'products',
             'data' => $ProductmappedData,
         ], JSON_PRETTY_PRINT);
+
         $orderJsonData = json_encode([
             'type' => 'table',
             'name' => 'orders',
             'data' => $ordermappedData,
         ], JSON_PRETTY_PRINT);
-        $productdetialjson = json_encode([
+
+        $productDetailsJsonData = json_encode([
             'type' => 'table',
             'name' => 'bgpkg_product_details',
             'data' => $detials,
         ], JSON_PRETTY_PRINT);
 
-        // Save the JSON data to a file
+        // Save JSON data to files
         File::put($productJson, $productJsonData);
         File::put($orderJson, $orderJsonData);
-        File::put($paper, $productdetialjson);
+        File::put($paperJson, $productDetailsJsonData);
 
-
-        // Return a success response or the path to the saved file
-        return response()->json(['message' => 'Data exported successfully!', 'file' => $productJsonData, 'order' => $orderJsonData]);
+        // Return success response with JSON data and file paths
+        return response()->json([
+            'message' => 'Data exported successfully!',
+            'product_file' => $productJson,
+            'order_file' => $orderJson,
+            'details_file' => $paperJson,
+            'product_json' => $ProductmappedData,
+            'order_json' => $ordermappedData,
+            'details_json' => $detials,
+        ]);
     }
+
     public function insertProduct()
     {
         // Define file paths for JSON files
