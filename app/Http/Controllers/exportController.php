@@ -772,6 +772,8 @@ class exportController extends Controller
             $ProductmappedData[] = $this->mapProductData($carton, $new_customer);
             $ordermappedData[] = $this->mapOrderData($carton);
             $detials = array_merge($detials, $this->mapPaperDetailsData($carton)); // Append multiple paper details
+            print_r($ProductmappedData);
+            print_r($detials);
         }
 
         // Define file paths
