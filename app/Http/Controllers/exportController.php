@@ -491,7 +491,7 @@ class exportController extends Controller
         // Retrieve all customers from the ppcustomer table
         $cartons = DB::table('carton')->get();
         $ProductmappedData = [];
-
+        $total = 1;
         foreach ($cartons as $carton) {
             $customer = DB::table('ppcustomer')->where('CustId', $carton->CustId1)->first();
             if (!$customer) {
@@ -557,7 +557,7 @@ class exportController extends Controller
                 'updated_at' => now(),
             ];
 
-            $total = 1;
+
             echo 'the total is  =  ' . ++$total . '<br/>';
         }
 
@@ -582,16 +582,10 @@ class exportController extends Controller
     {
         // Define file paths for JSON files
         $productFilePath = storage_path('app/products.json');
-        $orderFilePath = storage_path('app/orders.json');
-        $productDetailsFilePath = storage_path('app/bgpkg_product_details.json');
-
         // Retrieve and parse the contents of each JSON file
         $productJson = File::get($productFilePath);
         $productJsonData = json_decode($productJson, true);
-        $orderJson = File::get($orderFilePath);
-        $orderJsonData = json_decode($orderJson, true);
-        $productDetailsJson = File::get($productDetailsFilePath);
-        $productDetailsJsonData = json_decode($productDetailsJson, true);
+
 
         // Validate JSON structure for products
         if (!is_array($productJsonData) || !isset($productJsonData['data'])) {
@@ -655,6 +649,54 @@ class exportController extends Controller
             ]);
         }
 
+        // Return a success response
+        return response()->json(['message' => 'Products, orders, and product details saved successfully!']);
+    }
+    public function order()
+    {
+        $cartons = DB::table('carton')->get();
+        $ordermappedData = [];
+        $total = 1;
+        foreach ($cartons as $carton) {
+            $ordermappedData[] = [
+                'id' => $carton->CTNId,
+                'product_id' => $carton->CTNId,
+                'order_type' => null,
+                'order_quantity' => $carton->CTNQTY,
+                'currency' => $carton->CtnCurrency,
+                'manual_grade' => 50,
+                'unit_price' => $carton->CTNPrice,
+                'total_price' => $carton->CTNTotalPrice,
+                'glue_cost' => null,
+                'die_cost' => $carton->CTNDiePrice,
+                'polymer_cost' => $carton->CTNPolimarPrice,
+                'labor_cost' => null,
+                'paper_cost' => null,
+                'waste_cost' => null,
+                'electricity_cost' => null,
+                'profit_cost' => null,
+                'depreciation' => null,
+                'exchange_rate' => $carton->PexchangeUSD,
+                'created_at' => $carton->CTNOrderDate ?? now(),
+                'updated_at' => now(),
+            ];
+            echo 'the total is  =  ' . ++$total . '<br/>';
+        }
+        $orderJson = storage_path('app/orders.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'orders',
+            'data' => $ordermappedData,
+        ], JSON_PRETTY_PRINT);
+        File::put($orderJson, $orderJsonData);
+
+        return response()->json(['success' => 200]);
+    }
+    public function insertOrder()
+    {
+        $orderFilePath = storage_path('app/orders.json');
+        $orderJson = File::get($orderFilePath);
+        $orderJsonData = json_decode($orderJson, true);
         // Validate JSON structure for orders
         if (!is_array($orderJsonData) || !isset($orderJsonData['data'])) {
             return response()->json(['error' => 'Invalid orders JSON structure'], 400);
@@ -690,7 +732,63 @@ class exportController extends Controller
                 $updatedAt,
             ]);
         }
+        return response()->json(['message' => 'Products, orders, and product details saved successfully!']);
+    }
+    public function paper()
+    {
+        $batchSize = 1000; // Process 1000 records at a time
+        $cartonQuery = DB::table('carton');
+        $totalCartons = $cartonQuery->count(); // Get total cartons count
+        $totalProcessed = 0;
 
+        $detials = [];
+        $total = 1;
+
+        // Process cartons in batches
+        for ($offset = 0; $offset < $totalCartons; $offset += $batchSize) {
+            $cartons = $cartonQuery->offset($offset)->limit($batchSize)->get(); // Fetch batch of cartons
+
+            foreach ($cartons as $carton) {
+                for ($i = 1; $i <= $carton->CTNType; $i++) {
+                    // Check if dynamic properties like CTNType1, PaperP1, etc. exist before using them
+                    $typeKey = 'CTNType' . $i;
+                    $paperPriceKey = 'PaperP' . $i;
+
+                    if (isset($carton->$typeKey) && isset($carton->$paperPriceKey)) {
+                        $detials[] = [
+                            'product_id' => $carton->CTNId,
+                            'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
+                            'paper_gsm' => 125,
+                            'paper_price' => $carton->$paperPriceKey,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                echo 'The total processed is = ' . ++$totalProcessed . '<br/>';
+            }
+
+            // Write to file in chunks after each batch
+            $paperJson = storage_path('app/bgpkg_product_details.json');
+            $productDetailsJsonData = json_encode([
+                'type' => 'table',
+                'name' => 'bgpkg_product_details',
+                'data' => $detials,
+            ], JSON_PRETTY_PRINT);
+            File::put($paperJson, $productDetailsJsonData);
+
+            // Clear memory after each batch to avoid memory overload
+            $detials = [];
+            gc_collect_cycles(); // Force garbage collection
+        }
+
+        return response()->json(['success' => 200, 'total_processed' => $totalProcessed]);
+    }
+    public function insertPaper()
+    {
+        $productDetailsFilePath = storage_path('app/bgpkg_product_details.json');
+        $productDetailsJson = File::get($productDetailsFilePath);
+        $productDetailsJsonData = json_decode($productDetailsJson, true);
         // Validate JSON structure for product details
         if (!is_array($productDetailsJsonData) || !isset($productDetailsJsonData['data'])) {
             return response()->json(['error' => 'Invalid product details JSON structure'], 400);
@@ -702,8 +800,8 @@ class exportController extends Controller
             $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_product_details`
-                (product_id, paper_name, paper_gsm, paper_price, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)', [
+        (product_id, paper_name, paper_gsm, paper_price, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)', [
                 $item['product_id'],
                 $item['paper_name'],
                 $item['paper_gsm'],
@@ -712,83 +810,6 @@ class exportController extends Controller
                 $updatedAt,
             ]);
         }
-
-        // Return a success response
         return response()->json(['message' => 'Products, orders, and product details saved successfully!']);
-    }
-    public function order()
-    {
-        $cartons = DB::table('carton')->get();
-        $ordermappedData = [];
-        foreach ($cartons as $carton) {
-            $ordermappedData[] = [
-                'id' => $carton->CTNId,
-                'product_id' => $carton->CTNId,
-                'order_type' => null,
-                'order_quantity' => $carton->CTNQTY,
-                'currency' => $carton->CtnCurrency,
-                'manual_grade' => 50,
-                'unit_price' => $carton->CTNPrice,
-                'total_price' => $carton->CTNTotalPrice,
-                'glue_cost' => null,
-                'die_cost' => $carton->CTNDiePrice,
-                'polymer_cost' => $carton->CTNPolimarPrice,
-                'labor_cost' => null,
-                'paper_cost' => null,
-                'waste_cost' => null,
-                'electricity_cost' => null,
-                'profit_cost' => null,
-                'depreciation' => null,
-                'exchange_rate' => $carton->PexchangeUSD,
-                'created_at' => $carton->CTNOrderDate ?? now(),
-                'updated_at' => now(),
-            ];
-            $total = 1;
-            echo 'the total is  =  ' . ++$total . '<br/>';
-        }
-        $orderJson = storage_path('app/orders.json');
-        $orderJsonData = json_encode([
-            'type' => 'table',
-            'name' => 'orders',
-            'data' => $ordermappedData,
-        ], JSON_PRETTY_PRINT);
-        File::put($orderJson, $orderJsonData);
-
-        return response()->json(['success' => 200]);
-    }
-    public function paper()
-    {
-        $cartons = DB::table('carton')->get();
-        $detials = [];
-        foreach ($cartons as $carton) {
-
-            for ($i = 1; $i <= $carton->CTNType; $i++) {
-                // Check if dynamic properties like CTNType1, PaperP1, etc. exist before using them
-                $typeKey = 'CTNType' . $i;
-                $paperPriceKey = 'PaperP' . $i;
-
-                if (isset($carton->$typeKey) && isset($carton->$paperPriceKey)) {
-                    $detials[] = [
-                        'product_id' => $carton->CTNId,
-                        'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
-                        'paper_gsm' => 125,
-                        'paper_price' => $carton->$paperPriceKey,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-            $total = 1;
-            echo 'the total is  =  ' . ++$total . '<br/>';
-        }
-        $paperJson = storage_path('app/bgpkg_product_details.json');
-        $productDetailsJsonData = json_encode([
-            'type' => 'table',
-            'name' => 'bgpkg_product_details',
-            'data' => $detials,
-        ], JSON_PRETTY_PRINT);
-        File::put($paperJson, $productDetailsJsonData);
-
-        return response()->json(['success' => 200]);
     }
 }
