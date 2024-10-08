@@ -6,4 +6,4 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
-Route::get('/', [exportController::class, 'insertProduct']);
+Route::get('/', [exportController::class, 'insertOrder']);

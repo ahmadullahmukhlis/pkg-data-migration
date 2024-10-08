@@ -528,7 +528,7 @@ class exportController extends Controller
                 'length' => $carton->CTNWidth,
                 'height' => $carton->CTNHeight,
                 'width' => $carton->CTNLength,
-                'carton_type' => $carton->CTNType,
+                'carton_type' => $carton->CTNType == 'Select Ply Type' ? 3 : $carton->CTNType,
                 'flute_type' => $carton->CFluteType,
                 'die_cut' => $carton->CDieCut == 'Yes' ? 1 : 0,
                 'pasting' => $carton->CPasting == 'Yes' ? 1 : 0,
@@ -667,26 +667,31 @@ class exportController extends Controller
         $cartons = DB::table('carton')->get();
         $ordermappedData = [];
         $total = 1;
+
         foreach ($cartons as $carton) {
+            $order_type = 'New Order';
+            if ($carton->reorder_status == 'Yes') {
+                $order_type = 'Re Order';
+            }
             $ordermappedData[] = [
                 'id' => $carton->CTNId,
                 'product_id' => $carton->CTNId,
-                'order_type' => null,
-                'order_quantity' => $carton->CTNQTY,
+                'order_type' => $order_type,
+                'order_quantity' => $carton->CTNQTY ?? 0,
                 'currency' => $carton->CtnCurrency,
                 'manual_grade' => 50,
-                'unit_price' => $carton->CTNPrice,
-                'total_price' => $carton->CTNTotalPrice,
-                'glue_cost' => null,
-                'die_cost' => $carton->CTNDiePrice,
-                'polymer_cost' => $carton->CTNPolimarPrice,
-                'labor_cost' => null,
-                'paper_cost' => null,
-                'waste_cost' => null,
-                'electricity_cost' => null,
-                'profit_cost' => null,
-                'depreciation' => null,
-                'exchange_rate' => $carton->PexchangeUSD,
+                'unit_price' => $carton->CTNPrice ?? 0,
+                'total_price' => $carton->CTNTotalPrice ?? 0,
+                'glue_cost' => 0,
+                'die_cost' => $carton->CTNDiePrice ?? 0,
+                'polymer_cost' => $carton->CTNPolimarPrice ?? 0,
+                'labor_cost' => 0,
+                'paper_cost' => 0,
+                'waste_cost' => 0,
+                'electricity_cost' => 0,
+                'profit_cost' => 0,
+                'depreciation' => 0,
+                'exchange_rate' => $carton->PexchangeUSD ?? 0,
                 'created_at' => $carton->CTNOrderDate ?? now(),
                 'updated_at' => now(),
             ];
