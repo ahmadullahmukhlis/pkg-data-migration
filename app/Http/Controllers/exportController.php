@@ -751,53 +751,63 @@ class exportController extends Controller
     }
     public function paper()
     {
-        $batchSize = 1000; // Process 1000 records at a time
-        $cartonQuery = DB::table('carton');
-        $totalCartons = $cartonQuery->count(); // Get total cartons count
-        $totalProcessed = 0;
-
+        $cartons = DB::table('carton')->get();
         $detials = [];
+        $totalProcessed = 0;
+        $paperJson = storage_path('app/bgpkg_product_details.json'); // Path to the JSON file
 
-        // Process cartons in batches
-        for ($offset = 0; $offset < $totalCartons; $offset += $batchSize) {
-            $cartons = $cartonQuery->offset($offset)->limit($batchSize)->get(); // Fetch batch of cartons
+        // Initialize file by clearing old content before appending new data
+        File::put($paperJson, '');
 
-            foreach ($cartons as $carton) {
-                for ($i = 1; $i <= $carton->CTNType; $i++) {
-                    // Check if dynamic properties like CTNType1, PaperP1, etc. exist before using them
-                    $typeKey = 'CTNType' . $i;
-                    $paperPriceKey = 'PaperP' . $i;
+        // Fetch batch of cartons
+        foreach ($cartons as $carton) {
+            $totalProcessed++; // Track the number of cartons processed
 
-                    if (isset($carton->$typeKey) && isset($carton->$paperPriceKey)) {
-                        $detials[] = [
-                            'product_id' => $carton->CTNId,
-                            'paper_name' => isset($carton->Ctnp) ? $carton->Ctnp . $i : null,
-                            'paper_gsm' => 125,
-                            'paper_price' => $carton->$paperPriceKey,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    }
-                }
-                echo 'The total processed is = ' . ++$totalProcessed . '<br/>';
+            if ($carton->CTNType == 'Select Ply Type') {
+                $type = 3;
+            } else {
+                $type = (int) $carton->CTNType;
             }
 
-            // Write to file in chunks after each batch
-            $paperJson = storage_path('app/bgpkg_product_details.json');
+            for ($i = 1; $i <= $type; $i++) {
+                // Dynamically check if the type and paper price fields exist
+                $paperPriceKey = 'PaperP' . $i;
+                $paperNameKey = 'Ctnp' . $i; // Dynamically constructing column name for paper name
+
+                if (isset($carton->$paperPriceKey)) {
+                    $detials[] = [
+                        'product_id' => $carton->CTNId,
+                        'paper_name' => isset($carton->$paperNameKey) ? trim($carton->$paperNameKey) : null, // Remove leading/trailing spaces
+                        'paper_gsm' => 125, // Assuming GSM is always 125, you can adjust if needed
+                        'paper_price' => $carton->$paperPriceKey,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+        }
+
+        // Write to file in chunks after each batch to avoid memory overload
+        if (!empty($detials)) {
             $productDetailsJsonData = json_encode([
                 'type' => 'table',
                 'name' => 'bgpkg_product_details',
                 'data' => $detials,
             ], JSON_PRETTY_PRINT);
-            File::put($paperJson, $productDetailsJsonData);
 
-            // Clear memory after each batch to avoid memory overload
+            // Append the data to the file instead of overwriting it
+            File::append($paperJson, $productDetailsJsonData . PHP_EOL);
+
+            // Clear memory after each batch
             $detials = [];
             gc_collect_cycles(); // Force garbage collection
         }
 
         return response()->json(['success' => 200, 'total_processed' => $totalProcessed]);
     }
+
+
+
     public function insertPaper()
     {
         $productDetailsFilePath = storage_path('app/bgpkg_product_details.json');
