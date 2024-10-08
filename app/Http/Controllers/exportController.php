@@ -497,7 +497,9 @@ class exportController extends Controller
             if (!$customer) {
                 continue;
             }
-
+            $orderDate = Carbon::parse($carton->CTNOrderDate);
+            $year = $orderDate->format('y');
+            $code = 'PKG' . $year . '-' . $carton->CTNId;
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
                 ->where('customer_name', 'like', '%' . $customer->CustName . '%')
                 ->where('created_at', $customer->CusRegistrationDate)
@@ -510,7 +512,7 @@ class exportController extends Controller
             // Product mapped data
             $ProductmappedData[] = [
                 'id' => $carton->CTNId,
-                'product_code' => null,
+                'product_code' => $code,
                 'customer_id' => $new_customer->id,
                 'branch' => $new_customer->branch_id,
                 'product_status' => $carton->CTNStatus,
@@ -521,19 +523,19 @@ class exportController extends Controller
                 'width' => $carton->CTNLength,
                 'carton_type' => $carton->CTNType,
                 'flute_type' => $carton->CFluteType,
-                'die_cut' => $carton->CDieCut,
-                'pasting' => $carton->CPasting,
-                'sloted' => $carton->CSlotted,
-                'stitching' => $carton->CStitching,
+                'die_cut' => $carton->CDieCut == 'Yes' ? 1 : 0,
+                'pasting' => $carton->CPasting == 'Yes' ? 1 : 0,
+                'sloted' => $carton->CSlotted == 'Yes' ? 1 : 0,
+                'stitching' => $carton->CStitching == 'Yes' ? 1 : 0,
                 'stitching_type' => null,
-                'flexo_p' => $carton->flexop,
-                'offset_p' => $carton->offesetp,
-                'glue' => null,
+                'flexo_p' => $carton->flexop == 'Yes' ? 1 : 0,
+                'offset_p' => $carton->offesetp == 'Yes' ? 1 : 0,
+                'glue' => 0,
                 'glue_type' => null,
                 'color' => $carton->CTNColor,
-                'polymer' => $carton->polymer_info,
+                'polymer' => $carton->PolyId == null  ? 'New' : 'Exist',
                 'polymer_price' => $carton->CTNPolimarPrice,
-                'die' => $carton->die_info,
+                'die' => $carton->DieId == null ? 'New' : 'Exist',
                 'die_type' => null,
                 'die_price' => $carton->CTNDiePrice,
                 'flap_type' => $carton->NoFlip,
@@ -598,13 +600,14 @@ class exportController extends Controller
             $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_products`
-                (id, product_code, customer_id, branch, product_status, product_name, product_type, length, height, width, carton_type, flute_type, die_cut, pasting, sloted, stitching, stitching_type, flexo_p, offset_p, glue, glue_type, color, polymer, polymer_price, die, die_type, die_price, flap_type, flap_length, flap_width, tax, payment_term_id, payment_method_id, design_type, paper_weight, waste_weight, sheet_size, deadline, job_card_note, quotation_note, produced_quantity, stockout_quantity, agreement, created_by, created_at, updated_at)
+                (id, product_code, customer_id, branch_id, product_status, product_name, product_type, length, height, width, carton_type, flute_type, die_cut, pasting, sloted, stitching, stitching_type, flexo_p, offset_p, glue, glue_type, color, polymer, polymer_price, die, die_type, die_price, flap_type, flap_length, flap_width, tax, payment_term_id, payment_method_id, design_type, paper_weight, waste_weight, sheet_size, deadline, job_card_note, quotation_note, produced_quantity, stockout_quantity, agreement, created_by, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $item['id'],
                 $item['product_code'],
                 $item['customer_id'],
                 $item['branch'],
-                $item['product_status'],
+                'active',
+                // $item['product_status'],
                 $item['product_name'],
                 $item['product_type'],
                 $item['length'],
