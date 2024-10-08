@@ -508,7 +508,14 @@ class exportController extends Controller
             if (!$new_customer) {
                 continue; // Skip if new_customer not found
             }
-
+            $desgn = 'new_design';
+            if ($carton->DesignChecker == 'ExistDesign') {
+                $desgn = 'design_exist';
+            } else   if ($carton->DesignChecker == 'EditExistDesign') {
+                $desgn = 'design_exist_edit';
+            } else   if ($carton->DesignChecker == '') {
+                $desgn = 'no_print';
+            }
             // Product mapped data
             $ProductmappedData[] = [
                 'id' => $carton->CTNId,
@@ -544,7 +551,7 @@ class exportController extends Controller
                 'tax' => $carton->Tax,
                 'payment_term_id' => 1,
                 'payment_method_id' => 1,
-                'design_type' => null,
+                'design_type' => $desgn,
                 'paper_weight' => null,
                 'waste_weight' => null,
                 'sheet_size' => null,
