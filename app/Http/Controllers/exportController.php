@@ -836,4 +836,163 @@ class exportController extends Controller
         }
         return response()->json(['message' => 'Products, orders, and product details saved successfully!']);
     }
+    public function die()
+    {
+        $dies = DB::table('cdie')->get();
+        $diearray = [];
+        $sckach = [];
+
+        foreach ($dies as $die) {
+            $customer = DB::table('ppcustomer')->where('CustId', $die->CDCompany)->first();
+            $orderDate = Carbon::parse($die->CDMadeDate);
+            $year = $orderDate->format('y');
+            $code = 'PKG' . $year . '-' . $die->CDieId;
+
+            // Fetch new customer
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
+                ->where('created_at', $customer->CusRegistrationDate)
+                ->first();
+
+            // Fetch order related to die
+            $order = DB::table('carton')->where('DieId', $die->CDieId)->first();
+
+            // Collect die data
+            $diearray[] = [
+                'id' => $die->CDieId,
+                'number' => $code,
+                'app' => $die->App ?? 0,
+                'size' => $die->CDSize,
+                'status' => null,
+                'code' => $code,
+                'location' => $die->CDLocation,
+                'type' => $die->DieType,
+                'simple' => $die->CDSampleNo,
+                'shelf' => null,
+                'made' => $die->CDMade,
+                'property' => $die->CDOwner,
+                'bgpkg_customer_id' => $new_customer->id ?? null,
+                'bgpkg_order_id' => $order->CTNId ?? null,
+                'created_by' => null,
+                'branch_id' => 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+
+            // Collect scratch (sckach) file data
+            if ($die->Scatch) {
+                $sckach[] = [
+                    'name' => $die->Scatch,
+                    'file_name' => $die->Scatch,
+                    'mime_type' => 'application/pdf',
+                    'path' => storage_path("app/public/bgpkg/dies/{$die->Scatch}"),
+                    'disk' => 'public',
+                    'file_hash' => '',
+                    'collection' => '',
+                    'size' => 2, // Assuming the size is 2, adjust as needed
+                    'mediable_type' => 'App\Models\Bgpkg\BgpkgDie',
+                    'mediable_id' => $die->CDieId
+                ];
+            }
+        }
+
+        // Write die data to the bgpkg_dies.json file
+        $dieJson = storage_path('app/bgpkg_dies.json');
+        $dieFile = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_dies',
+            'data' => $diearray,
+        ], JSON_PRETTY_PRINT);
+        File::put($dieJson, $dieFile);
+
+        // Write scratch data to the sckatch.json file
+        $sckachJson = storage_path('app/sckatch.json');
+        $sckachFile = json_encode([
+            'type' => 'table',
+            'name' => 'media',
+            'data' => $sckach,
+        ], JSON_PRETTY_PRINT);
+        File::put($sckachJson, $sckachFile);
+
+        return response()->json(['success' => 200]);
+    }
+
+    public function insertDie()
+    {
+        // Paths to the JSON files
+        $dieJsonFilePath = storage_path('app/bgpkg_dies.json');
+        $sckachJsonFilePath = storage_path('app/sckatch.json');
+
+        // Check if the files exist
+        if (!File::exists($dieJsonFilePath) || !File::exists($sckachJsonFilePath)) {
+            return response()->json(['error' => 'JSON files not found'], 404);
+        }
+
+        // Read and decode the die JSON file
+        $dieJson = File::get($dieJsonFilePath);
+        $dieJsonData = json_decode($dieJson, true);
+
+        // Read and decode the sckach JSON file
+        $sckachJson = File::get($sckachJsonFilePath);
+        $sckachJsonData = json_decode($sckachJson, true);
+
+        // Validate JSON structure for die data
+        if (!is_array($dieJsonData) || !isset($dieJsonData['data'])) {
+            return response()->json(['error' => 'Invalid die JSON structure'], 400);
+        }
+
+        // Validate JSON structure for sckach data
+        if (!is_array($sckachJsonData) || !isset($sckachJsonData['data'])) {
+            return response()->json(['error' => 'Invalid sckach JSON structure'], 400);
+        }
+
+        // Insert die data into the 'bgpkg_dies' table
+        foreach ($dieJsonData['data'] as $die) {
+            $createdAt = isset($die['created_at']) ? Carbon::parse($die['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($die['updated_at']) ? Carbon::parse($die['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_dies`
+                (id, number, app, size, status, code, location, type, simple, shelf, made, property, bgpkg_customer_id, bgpkg_order_id, created_by, branch_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $die['id'],
+                $die['number'],
+                $die['app'],
+                $die['size'],
+                $die['status'],
+                $die['code'],
+                $die['location'],
+                $die['type'],
+                $die['simple'],
+                $die['shelf'],
+                $die['made'],
+                $die['property'],
+                $die['bgpkg_customer_id'],
+                $die['bgpkg_order_id'],
+                $die['created_by'],
+                $die['branch_id'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Insert sckach (scratch file) data into the 'media' table
+        foreach ($sckachJsonData['data'] as $sckach) {
+            DB::insert('INSERT INTO `baheer-group-for-test`.`media`
+                (name, file_name, mime_type, path, disk, file_hash, collection, size, mediable_type, mediable_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $sckach['name'],
+                $sckach['file_name'],
+                $sckach['mime_type'],
+                $sckach['path'],
+                $sckach['disk'],
+                $sckach['file_hash'],
+                $sckach['collection'],
+                $sckach['size'],
+                $sckach['mediable_type'],
+                $sckach['mediable_id']
+            ]);
+        }
+
+        return response()->json(['message' => 'Dies and associated scratch files inserted successfully!']);
+    }
 }
