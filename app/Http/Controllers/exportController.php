@@ -1448,4 +1448,73 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Jobs and histories inserted successfully!']);
     }
+    public function machine()
+    {
+        $machines = DB::table('machine')->get();
+        $machineData = [];
+
+        foreach ($machines as $machine) {
+
+            $machineData[] = [
+                'id' => $machine->machine_id,
+                'name' => $machine->machine_name,
+                'short_name' => $machine->machine_name_pashto ?? '3PLY',
+                'machine_type' => 'Carrugation',
+                'machine_size' => 50,
+                'machine_capacity' => $machine->capacity ?? 5,
+                'unit_id' => 2,
+                'created_by' => 1190,
+                'created_at' =>  now(),
+                'updated_at' => now(),
+            ];
+        }
+        $machineJson = storage_path('app/bgpkg_machines.json');
+        $machineData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_machines',
+            'data' => $machineData,
+        ], JSON_PRETTY_PRINT);
+        File::put($machineJson, $machineData);
+
+        return response()->json(['success' => 200]);
+    }
+    public function insertMachine()
+    {
+
+        $machineJsonFilePath = storage_path('app/bgpkg_machines.json');
+        if (!File::exists($machineJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        $machineJson = File::get($machineJsonFilePath);
+        $machineData = json_decode($machineJson, true);
+
+        if (!is_array($machineData) || !isset($machineData['data'])) {
+            return response()->json(['error' => 'Invalid machine JSON structure'], 400);
+        }
+
+        // Insert machine data into the 'machines' table
+        foreach ($machineData['data'] as $machine) {
+            // Convert created_at and updated_at to the MySQL format
+            $createdAt = Carbon::parse($machine['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($machine['updated_at'])->format('Y-m-d H:i:s');
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_machines`
+            (id, name, short_name, machine_type, machine_size, machine_capacity, unit_id, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $machine['id'],
+                $machine['name'],
+                $machine['short_name'],
+                $machine['machine_type'],
+                $machine['machine_size'],
+                $machine['machine_capacity'],
+                $machine['unit_id'],
+                $machine['created_by'],
+                $createdAt,  // Use formatted date
+                $updatedAt,  // Use formatted date
+            ]);
+        }
+
+        return response()->json(['message' => 'Machines inserted successfully!']);
+    }
 }
