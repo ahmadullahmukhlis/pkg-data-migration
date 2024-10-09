@@ -1259,4 +1259,110 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Designs and associated media inserted successfully!']);
     }
+    public function job()
+    {
+        $cartons = DB::table('carton')->whereNotNull('JobNo')->whereNotIn('CTNStatus', ['OnlyProduct', 'Disable', 'Dconfirm', 'Deactive'])->get();
+        $jobData = [];
+        $history = [];
+
+
+        foreach ($cartons as $carton) {
+            $jobNumber = 'BGPKG' . $carton->JobNo;
+            $status = 'new';
+            $location = 'finance';
+            if ($carton->CTNStatus == 'Archive') {
+                $status = 'new';
+                $location = 'archive';
+            } else  if ($carton->CTNStatus == 'Completed') {
+                $status = 'completed';
+                $location = 'complete';
+            } else  if ($carton->CTNStatus == 'New') {
+                $status = 'new';
+                $location = 'finance';
+            } else  if ($carton->CTNStatus == 'Cancel') {
+                $status = 'rejected';
+                $location = 'cancel';
+            } else  if ($carton->CTNStatus == 'Production Process') {
+                $status = 'process';
+                $location = 'production process';
+            } else  if ($carton->CTNStatus == 'Printing') {
+                $status = 'new';
+                $location = 'printing press';
+            } else  if ($carton->CTNStatus == 'DesignProcess') {
+                $status = 'process';
+                $location = 'Design';
+            } else  if ($carton->CTNStatus == 'Fconfirm') {
+                $status = 'new';
+                $location = 'film';
+            } else  if ($carton->CTNStatus == 'Production Pending') {
+                $status = 'process';
+                $location = 'printing press';
+            } else  if ($carton->CTNStatus == 'Production') {
+                $status = 'new';
+                $location = 'production new';
+            } else  if ($carton->CTNStatus == 'Pospond') {
+                $status = 'postponed';
+                $location = 'film';
+            } else  if ($carton->CTNStatus == 'Design') {
+                $status = 'new';
+                $location = 'Design';
+            } else  if ($carton->CTNStatus == 'Film') {
+                $status = 'new';
+                $location = 'film';
+            }
+            $jobData[] = [
+                'id' => $carton->CTNId,
+                'job_number' => $jobNumber,
+                'status' => $status,
+                'location' => $location,
+                'old_status' => $carton->CTNStatus,
+                'manual_grade' => 50,
+                'unit_price' => $carton->CTNPrice ?? 0,
+                'total_price' => $carton->CTNTotalPrice ?? 0,
+                'glue_cost' => 0,
+                'die_cost' => $carton->CTNDiePrice ?? 0,
+                'polymer_cost' => $carton->CTNPolimarPrice ?? 0,
+                'labor_cost' => 0,
+                'paper_cost' => 0,
+                'waste_cost' => 0,
+                'electricity_cost' => 0,
+                'profit_cost' => 0,
+                'depreciation' => 0,
+                'exchange_rate' => $carton->PexchangeUSD ?? 0,
+                'created_at' => $carton->CTNOrderDate ?? now(),
+                'updated_at' => now(),
+            ];
+            $histories = DB::table('cartoncomment')->where('CartonId1', $carton->CTNId)->get();
+            foreach ($histories as $item) {
+                $user = DB::table('employeet')->where('EId', $item->EmpId1)->first();
+                $employee_id = null;
+
+                // Ensure the user exists before trying to fetch the employee data
+                if ($user) {
+                    $employee = DB::table('users')->where('name', $user->EUserName)->first();
+                    // Use optional chaining to avoid errors if $employee is null
+                    $employee_id = $employee?->employee_id;
+                }
+                $history[] = [
+                    'bgpkg_job_id' => $carton->CTNId,
+                    'status' => $status,
+                    'location' => $item->ComDepartment,
+                    'entered_at' => $item->ComDate,
+                    'exited_at' => $item->EndDate,
+                    'created_by' => $employee_id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+        $orderJson = storage_path('app/bgpkg_jobs.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_jobs',
+            'data' => $jobData,
+        ], JSON_PRETTY_PRINT);
+        File::put($orderJson, $orderJsonData);
+
+        return response()->json(['success' => 200]);
+    }
 }
