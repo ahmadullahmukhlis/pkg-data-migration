@@ -1329,12 +1329,21 @@ class exportController extends Controller
                     $employee = DB::table('users')->where('name', $user->EUserName)->first();
                     $employee_id = $employee?->employee_id; // Safe navigation
                 }
-
+                $itemType = '';
+                if ($item->ComDepartment == 'Finance') {
+                    $itemType = 'finance';
+                } else if ($item->ComDepartment == 'Design') {
+                    $itemType = 'Design';
+                } else if ($item->ComDepartment == 'Archive') {
+                    $itemType = 'archive';
+                } else if ($item->ComDepartment == 'Printing') {
+                    $itemType = 'printing press';
+                }
                 // Build history data array
                 $historyData[] = [
                     'bgpkg_job_id' => $carton->CTNId,
                     'status' => $status,
-                    'location' => $item->ComDepartment,
+                    'location' => $itemType,
                     'entered_at' => $item->ComDate,
                     'exited_at' => $item->EndDate,
                     'created_by' => $employee_id,
@@ -1398,7 +1407,7 @@ class exportController extends Controller
             $createdAt = isset($job['created_at']) ? Carbon::parse($job['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($job['updated_at']) ? Carbon::parse($job['updated_at'])->format('Y-m-d H:i:s') : now();
 
-            DB::insert('INSERT INTO `bgpkg_jobs`
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_jobs`
             (id, job_number, status, location, old_status, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $job['id'],
@@ -1423,7 +1432,7 @@ class exportController extends Controller
             $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
 
-            DB::insert('INSERT INTO `bgpkg_job_histories`
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_histories`
             (bgpkg_job_id, status, location, entered_at, exited_at, created_by, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
                 $history['bgpkg_job_id'],
