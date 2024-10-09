@@ -1004,9 +1004,12 @@ class exportController extends Controller
 
         foreach ($dies as $die) {
             $customer = DB::table('ppcustomer')->where('CustId', $die->CompId)->first();
+            if (!$customer) {
+                continue;
+            }
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
-                ->where('created_at', $customer->CusRegistrationDate)
+                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
+                ->where('created_at', $customer?->CusRegistrationDate)
                 ->first();
 
             // Fetch order related to die
