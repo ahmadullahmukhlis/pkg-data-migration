@@ -1517,4 +1517,93 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Machines inserted successfully!']);
     }
+    public function jobPolymer()
+    {
+        $designs = DB::table('designinfo')->whereNotNull('film_start_date')->get();
+        $desgined = [];
+
+        foreach ($designs as $design) {
+            $employee_id = 110;
+
+            // Determine status
+            $status = match ($design->DesignStatus) {
+                null => 'New',
+                'Complete' => 'Done',
+                'Assigned' => 'Assigned',
+                'Done' => 'Done', // Added 'Done' case
+                default => 'New',  // Fallback for unhandled statuses
+            };
+            $bgpkgJob = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $design->CaId)->first();
+            if (!$bgpkgJob) {
+                continue;
+            }
+            // Prepare design data
+            $desgined[] = [
+                'id' => $design->DesignId,
+                'start' => $design->film_start_date,
+                'end' => $design->film_complete_date ?? now(),
+                'status' => $status,
+                'assignee' => $employee_id,
+                'bgpkg_job_id' => $bgpkgJob->id,
+                'bgpkg_polymer_id' => null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+
+        // Correctly encode the design data and write to the JSON file
+        $designJsonPath = storage_path('app/bgpkg_job_polymers.json');
+        $designFile = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_job_polymers',
+            'data' => $desgined, // Correctly add the designed data here
+        ], JSON_PRETTY_PRINT);
+        File::put($designJsonPath, $designFile);
+
+        return response()->json(['success' => 200]);
+    }
+    public function insertJobPolymer()
+    {
+        // Path to the job polymers JSON file
+        $jobPolymerJsonFilePath = storage_path('app/bgpkg_job_polymers.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($jobPolymerJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        // Read and decode the job polymer JSON file
+        $jobPolymerJson = File::get($jobPolymerJsonFilePath);
+        $jobPolymerData = json_decode($jobPolymerJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($jobPolymerData) || !isset($jobPolymerData['data'])) {
+            return response()->json(['error' => 'Invalid job polymer JSON structure'], 400);
+        }
+
+        // Insert job polymer data into the 'bgpkg_job_polymers' table
+        foreach ($jobPolymerData['data'] as $polymer) {
+            // Convert the dates to MySQL's datetime format
+            $start = Carbon::parse($polymer['start'])->format('Y-m-d H:i:s');
+            $end = Carbon::parse($polymer['end'])->format('Y-m-d H:i:s');
+            $createdAt = Carbon::parse($polymer['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($polymer['updated_at'])->format('Y-m-d H:i:s');
+            // Insert the data into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_polymers`
+            (id, start, end, status, assignee, bgpkg_job_id, bgpkg_polymer_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $polymer['id'],
+                $start,
+                $end,
+                $polymer['status'],
+                $polymer['assignee'],
+                $polymer['bgpkg_job_id'],
+                $polymer['bgpkg_polymer_id'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Job polymers inserted successfully!']);
+    }
 }
