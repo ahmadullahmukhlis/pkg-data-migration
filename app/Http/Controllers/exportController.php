@@ -1261,89 +1261,77 @@ class exportController extends Controller
     }
     public function job()
     {
-        $cartons = DB::table('carton')->whereNotNull('JobNo')->whereNotIn('CTNStatus', ['OnlyProduct', 'Disable', 'Dconfirm', 'Deactive'])->get();
-        $jobData = [];
-        $history = [];
+        // Fetch all cartons with valid JobNo and status filtering
+        $cartons = DB::table('carton')
+            ->whereNotNull('JobNo')
+            ->whereNotIn('CTNStatus', ['OnlyProduct', 'Disable', 'Dconfirm', 'Deactive'])
+            ->get();
 
+        $jobData = [];
+        $historyData = [];
 
         foreach ($cartons as $carton) {
+            // Generate the job number
             $jobNumber = 'BGPKG' . $carton->JobNo;
-            $status = 'new';
-            $location = 'finance';
-            if ($carton->CTNStatus == 'Archive') {
-                $status = 'new';
-                $location = 'archive';
-            } else  if ($carton->CTNStatus == 'Completed') {
-                $status = 'completed';
-                $location = 'complete';
-            } else  if ($carton->CTNStatus == 'New') {
-                $status = 'new';
-                $location = 'finance';
-            } else  if ($carton->CTNStatus == 'Cancel') {
-                $status = 'rejected';
-                $location = 'cancel';
-            } else  if ($carton->CTNStatus == 'Production Process') {
-                $status = 'process';
-                $location = 'production process';
-            } else  if ($carton->CTNStatus == 'Printing') {
-                $status = 'new';
-                $location = 'printing press';
-            } else  if ($carton->CTNStatus == 'DesignProcess') {
-                $status = 'process';
-                $location = 'Design';
-            } else  if ($carton->CTNStatus == 'Fconfirm') {
-                $status = 'new';
-                $location = 'film';
-            } else  if ($carton->CTNStatus == 'Production Pending') {
-                $status = 'process';
-                $location = 'printing press';
-            } else  if ($carton->CTNStatus == 'Production') {
-                $status = 'new';
-                $location = 'production new';
-            } else  if ($carton->CTNStatus == 'Pospond') {
-                $status = 'postponed';
-                $location = 'film';
-            } else  if ($carton->CTNStatus == 'Design') {
-                $status = 'new';
-                $location = 'Design';
-            } else  if ($carton->CTNStatus == 'Film') {
-                $status = 'new';
-                $location = 'film';
-            }
+
+            // Map status and location based on CTNStatus
+            $statusLocationMap = [
+                'Archive' => ['status' => 'new', 'location' => 'archive'],
+                'Completed' => ['status' => 'completed', 'location' => 'complete'],
+                'New' => ['status' => 'new', 'location' => 'finance'],
+                'Cancel' => ['status' => 'rejected', 'location' => 'cancel'],
+                'Production Process' => ['status' => 'process', 'location' => 'production process'],
+                'Printing' => ['status' => 'new', 'location' => 'printing press'],
+                'DesignProcess' => ['status' => 'process', 'location' => 'Design'],
+                'Fconfirm' => ['status' => 'new', 'location' => 'film'],
+                'Production Pending' => ['status' => 'process', 'location' => 'printing press'],
+                'Production' => ['status' => 'new', 'location' => 'production new'],
+                'Pospond' => ['status' => 'postponed', 'location' => 'film'],
+                'Design' => ['status' => 'new', 'location' => 'Design'],
+                'Film' => ['status' => 'new', 'location' => 'film'],
+            ];
+
+            // Default to new/finance if status not in the map
+            $status = $statusLocationMap[$carton->CTNStatus]['status'] ?? 'new';
+            $location = $statusLocationMap[$carton->CTNStatus]['location'] ?? 'finance';
+
+            // Determine job type
+            $type = $carton->JobType === 'Normal' ? 'Normal' : 'Urgent';
+
+            // Build job data array
             $jobData[] = [
                 'id' => $carton->CTNId,
                 'job_number' => $jobNumber,
                 'status' => $status,
                 'location' => $location,
                 'old_status' => $carton->CTNStatus,
-                'manual_grade' => 50,
-                'unit_price' => $carton->CTNPrice ?? 0,
-                'total_price' => $carton->CTNTotalPrice ?? 0,
-                'glue_cost' => 0,
-                'die_cost' => $carton->CTNDiePrice ?? 0,
-                'polymer_cost' => $carton->CTNPolimarPrice ?? 0,
-                'labor_cost' => 0,
-                'paper_cost' => 0,
-                'waste_cost' => 0,
-                'electricity_cost' => 0,
-                'profit_cost' => 0,
-                'depreciation' => 0,
-                'exchange_rate' => $carton->PexchangeUSD ?? 0,
-                'created_at' => $carton->CTNOrderDate ?? now(),
+                'type' => $type,
+                'deadline' => null,
+                'operation' => null,
+                'bgpkg_order_id' => $carton->CTNId,
+                'branch_id' => 1,
+                'plan_status' => 'new',
+                'produced_quantity' => 0,
+                'created_at' => $carton->job_order_date ?? now(),
                 'updated_at' => now(),
             ];
+
+            // Fetch history for each carton
             $histories = DB::table('cartoncomment')->where('CartonId1', $carton->CTNId)->get();
+
             foreach ($histories as $item) {
+                // Fetch user details
                 $user = DB::table('employeet')->where('EId', $item->EmpId1)->first();
                 $employee_id = null;
 
                 // Ensure the user exists before trying to fetch the employee data
                 if ($user) {
                     $employee = DB::table('users')->where('name', $user->EUserName)->first();
-                    // Use optional chaining to avoid errors if $employee is null
-                    $employee_id = $employee?->employee_id;
+                    $employee_id = $employee?->employee_id; // Safe navigation
                 }
-                $history[] = [
+
+                // Build history data array
+                $historyData[] = [
                     'bgpkg_job_id' => $carton->CTNId,
                     'status' => $status,
                     'location' => $item->ComDepartment,
@@ -1351,18 +1339,104 @@ class exportController extends Controller
                     'exited_at' => $item->EndDate,
                     'created_by' => $employee_id,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ];
             }
         }
-        $orderJson = storage_path('app/bgpkg_jobs.json');
-        $orderJsonData = json_encode([
+
+        // Write job data to the bgpkg_jobs.json file
+        $jobJsonPath = storage_path('app/bgpkg_jobs.json');
+        $jobJsonContent = json_encode([
             'type' => 'table',
             'name' => 'bgpkg_jobs',
             'data' => $jobData,
         ], JSON_PRETTY_PRINT);
-        File::put($orderJson, $orderJsonData);
+        File::put($jobJsonPath, $jobJsonContent);
+
+        // Write history data to the bgpkg_job_histories.json file
+        $historyJsonPath = storage_path('app/bgpkg_job_histories.json');
+        $historyJsonContent = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_job_histories',
+            'data' => $historyData,
+        ], JSON_PRETTY_PRINT);
+        File::put($historyJsonPath, $historyJsonContent);
 
         return response()->json(['success' => 200]);
+    }
+    public function insertJob()
+    {
+        // Paths to the JSON files
+        $jobJsonFilePath = storage_path('app/bgpkg_jobs.json');
+        $historyJsonFilePath = storage_path('app/bgpkg_job_histories.json');
+
+        // Check if the files exist
+        if (!File::exists($jobJsonFilePath) || !File::exists($historyJsonFilePath)) {
+            return response()->json(['error' => 'JSON files not found'], 404);
+        }
+
+        // Read and decode the job JSON file
+        $jobJson = File::get($jobJsonFilePath);
+        $jobData = json_decode($jobJson, true);
+
+        // Read and decode the history JSON file
+        $historyJson = File::get($historyJsonFilePath);
+        $historyData = json_decode($historyJson, true);
+
+        // Validate JSON structure for job data
+        if (!is_array($jobData) || !isset($jobData['data'])) {
+            return response()->json(['error' => 'Invalid job JSON structure'], 400);
+        }
+
+        // Validate JSON structure for history data
+        if (!is_array($historyData) || !isset($historyData['data'])) {
+            return response()->json(['error' => 'Invalid history JSON structure'], 400);
+        }
+
+        // Insert job data into the 'bgpkg_jobs' table
+        foreach ($jobData['data'] as $job) {
+            $createdAt = isset($job['created_at']) ? Carbon::parse($job['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($job['updated_at']) ? Carbon::parse($job['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `bgpkg_jobs`
+            (id, job_number, status, location, old_status, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $job['id'],
+                $job['job_number'],
+                $job['status'],
+                $job['location'],
+                $job['old_status'],
+                $job['type'],
+                $job['deadline'],
+                $job['operation'],
+                $job['bgpkg_order_id'],
+                $job['branch_id'],
+                $job['plan_status'],
+                $job['produced_quantity'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Insert history data into the 'bgpkg_job_histories' table
+        foreach ($historyData['data'] as $history) {
+            $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `bgpkg_job_histories`
+            (bgpkg_job_id, status, location, entered_at, exited_at, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+                $history['bgpkg_job_id'],
+                $history['status'],
+                $history['location'],
+                $history['entered_at'],
+                $history['exited_at'],
+                $history['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Jobs and histories inserted successfully!']);
     }
 }
