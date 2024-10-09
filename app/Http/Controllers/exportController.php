@@ -1103,4 +1103,41 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Polymers inserted successfully!']);
     }
+
+    public function design()
+    {
+        $designs = DB::table('designinfo')->get();
+        $desgined = [];
+        $image = [];
+        foreach ($designs as $design) {
+            $desgined[] = [
+                'id' => $design->DesignId,
+                'deadline',
+                'start',
+                'end',
+                'code',
+                'status',
+                'assignee',
+                'designable_id',
+                'designable_type',
+                'comment',
+                'created_at',
+                'updated_at'
+            ];
+            if ($design->DesignImage) {
+                $sckach[] = [
+                    'name' => $design->DesignImage,
+                    'file_name' => $design->DesignImage,
+                    'mime_type' => 'application/pdf',
+                    'path' => storage_path("app/public/bgpkg/dies/{$design->DesignImage}"),
+                    'disk' => 'public',
+                    'file_hash' => '',
+                    'collection' => '',
+                    'size' => 2, // Assuming the size is 2, adjust as needed
+                    'mediable_type' => 'App\Models\Bgpkg\BgpkgDie',
+                    'mediable_id' => $design->DesignId
+                ];
+            }
+        }
+    }
 }
