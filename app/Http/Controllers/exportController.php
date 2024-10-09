@@ -995,4 +995,109 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Dies and associated scratch files inserted successfully!']);
     }
+
+    public function polymer()
+    {
+        $dies = DB::table('cpolymer')->get();
+        $polymer = [];
+        $iteration = 1; // Start the iteration counter
+
+        foreach ($dies as $die) {
+            $customer = DB::table('ppcustomer')->where('CustId', $die->CompId)->first();
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
+                ->where('created_at', $customer->CusRegistrationDate)
+                ->first();
+
+            // Fetch order related to die
+            $order = DB::table('carton')->where('PolyId', $die->CPid)->first();
+
+            // Collect die data
+            $polymer[] = [
+                'id' => $die->CPid,
+                'number' => $die->CPNumber,
+                'app' => $iteration, // Use the iteration counter here
+                'size' => $die->Psize,
+                'status' => $die->PStatus,
+                'color' => $die->PColor,
+                'location' => $die->PLocation,
+                'mader' => $die->PMade,
+                'owner' => $die->POwner,
+                'made_date' => $die->MakeDate,
+                'sample' => $die->CartSample,
+                'code' => $die->DesignCode,
+                'bgpkg_customer_id' => $new_customer->id ?? null,
+                'bgpkg_order_id' => $order->CTNId ?? null,
+                'created_by' => null,
+                'branch_id' => 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+
+            $iteration++; // Increment the counter after each loop
+        }
+
+        // Write die data to the bgpkg_dies.json file
+        $polymerJson = storage_path('app/bgpkg_polymers.json');
+        $polymerFile = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_polymers',
+            'data' => $polymer,
+        ], JSON_PRETTY_PRINT);
+        File::put($polymerJson, $polymerFile);
+
+        return response()->json(['success' => 200]);
+    }
+    public function insertPolymer()
+    {
+        // Path to the polymer JSON file
+        $polymerJsonFilePath = storage_path('app/bgpkg_polymers.json');
+
+        // Check if the file exists
+        if (!File::exists($polymerJsonFilePath)) {
+            return response()->json(['error' => 'Polymer JSON file not found'], 404);
+        }
+
+        // Read and decode the polymer JSON file
+        $polymerJson = File::get($polymerJsonFilePath);
+        $polymerJsonData = json_decode($polymerJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($polymerJsonData) || !isset($polymerJsonData['data'])) {
+            return response()->json(['error' => 'Invalid polymer JSON structure'], 400);
+        }
+
+        // Insert polymer data into the 'bgpkg_polymers' table
+        foreach ($polymerJsonData['data'] as $polymer) {
+            // Handle created_at and updated_at, defaulting to current time if not present
+            $createdAt = isset($polymer['created_at']) ? Carbon::parse($polymer['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($polymer['updated_at']) ? Carbon::parse($polymer['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            // Insert into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_polymers`
+            (id, number, app, size, status, color, location, mader, owner, made_date, sample, code, bgpkg_customer_id, bgpkg_order_id, created_by, branch_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $polymer['id'],
+                $polymer['number'],
+                $polymer['app'],  // Iteration or application field
+                $polymer['size'],
+                $polymer['status'],
+                $polymer['color'],
+                $polymer['location'],
+                $polymer['mader'],
+                $polymer['owner'],
+                $polymer['made_date'],
+                $polymer['sample'],
+                $polymer['code'],
+                $polymer['bgpkg_customer_id'] ?? null,  // Use null if customer ID is not present
+                $polymer['bgpkg_order_id'] ?? null,  // Use null if order ID is not present
+                $polymer['created_by'],
+                $polymer['branch_id'],
+                $createdAt,
+                $updatedAt
+            ]);
+        }
+
+        return response()->json(['message' => 'Polymers inserted successfully!']);
+    }
 }
