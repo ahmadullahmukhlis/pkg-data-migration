@@ -1108,36 +1108,155 @@ class exportController extends Controller
     {
         $designs = DB::table('designinfo')->get();
         $desgined = [];
-        $image = [];
+        $media = [];
+
         foreach ($designs as $design) {
+            $user = DB::table('employeet')->where('EId', $design->designer_id)->first();
+            $employee_id = null;
+
+            // Ensure the user exists before trying to fetch the employee data
+            if ($user) {
+                $employee = DB::table('users')->where('name', $user->EUserName)->first();
+                // Use optional chaining to avoid errors if $employee is null
+                $employee_id = $employee?->employee_id;
+            }
+
+            // Determine status
+            $status = match ($design->DesignStatus) {
+                'Done' => 'Done',
+                'Submit for design', 'Sent for design' => 'New',
+                'Submit for Making' => 'Done',
+                'Processing' => 'Design Start',
+                'Sent For Approval' => 'Sent for Approval',
+                'Pending' => 'Design Complete',
+                'Reject' => 'Rejected',
+                default => 'Unknown',
+            };
+
+            // Prepare design data
             $desgined[] = [
                 'id' => $design->DesignId,
-                'deadline',
-                'start',
-                'end',
-                'code',
-                'status',
-                'assignee',
-                'designable_id',
-                'designable_type',
-                'comment',
-                'created_at',
-                'updated_at'
+                'deadline' => $design->Alarmdatetime == "0000-00-00 00:00:00" ? null : $design->Alarmdatetime,
+                'start' => $design->DesignStartTime,
+                'end' => $design->CompleteTime,
+                'code' => $design->DesignCode1,
+                'status' => $status,
+                'assignee' => $employee_id,
+                'designable_id' => $design->CaId,
+                'designable_type' => 'App\Models\Bgpkg\BgpkgOrder',
+                'comment' => 'The old System Data is here',
+                'created_at' => now(),
+                'updated_at' => now()
             ];
+
+            // Prepare media data if DesignImage exists
             if ($design->DesignImage) {
-                $sckach[] = [
+                $media[] = [
                     'name' => $design->DesignImage,
                     'file_name' => $design->DesignImage,
                     'mime_type' => 'application/pdf',
-                    'path' => storage_path("app/public/bgpkg/dies/{$design->DesignImage}"),
+                    'path' => storage_path("app/public/bgpkg/designs/{$design->DesignImage}"),
                     'disk' => 'public',
-                    'file_hash' => '',
-                    'collection' => '',
-                    'size' => 2, // Assuming the size is 2, adjust as needed
-                    'mediable_type' => 'App\Models\Bgpkg\BgpkgDie',
+                    'file_hash' => '', // You might need to calculate this
+                    'collection' => '', // Fill collection if applicable
+                    'size' => 2, // Assuming the size, adjust as needed
+                    'mediable_type' => 'App\Models\Bgpkg\BgpkgDesign',
                     'mediable_id' => $design->DesignId
                 ];
             }
         }
+
+        // Correctly encode the design data and write to the JSON file
+        $designJsonPath = storage_path('app/bgpkg_designs.json');
+        $designFile = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_designs',
+            'data' => $desgined, // Correctly add the designed data here
+        ], JSON_PRETTY_PRINT);
+        File::put($designJsonPath, $designFile);
+
+        // Write media data to the JSON file
+        $mediaJsonPath = storage_path('app/design_media.json');
+        $mediaFile = json_encode([
+            'type' => 'table',
+            'name' => 'media',
+            'data' => $media, // Correctly add the media data here
+        ], JSON_PRETTY_PRINT);
+        File::put($mediaJsonPath, $mediaFile);
+
+        return response()->json(['success' => 200]);
+    }
+
+    public function insertDesign()
+    {
+        // Paths to the JSON files
+        $designJsonFilePath = storage_path('app/bgpkg_designs.json');
+        $mediaJsonFilePath = storage_path('app/design_media.json');
+
+        // Check if the files exist
+        if (!File::exists($designJsonFilePath) || !File::exists($mediaJsonFilePath)) {
+            return response()->json(['error' => 'JSON files not found'], 404);
+        }
+
+        // Read and decode the design JSON file
+        $designJson = File::get($designJsonFilePath);
+        $designJsonData = json_decode($designJson, true);
+
+        // Read and decode the media JSON file
+        $mediaJson = File::get($mediaJsonFilePath);
+        $mediaJsonData = json_decode($mediaJson, true);
+
+        // Validate JSON structure for design data
+        if (!is_array($designJsonData) || !isset($designJsonData['data'])) {
+            return response()->json(['error' => 'Invalid design JSON structure'], 400);
+        }
+
+        // Validate JSON structure for media data
+        if (!is_array($mediaJsonData) || !isset($mediaJsonData['data'])) {
+            return response()->json(['error' => 'Invalid media JSON structure'], 400);
+        }
+
+        // Insert design data into the 'bgpkg_designs' table
+        foreach ($designJsonData['data'] as $design) {
+            $createdAt = isset($design['created_at']) ? Carbon::parse($design['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($design['updated_at']) ? Carbon::parse($design['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_designs`
+            (id, deadline, start, end, code, status, assignee, designable_id, designable_type, comment, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $design['id'],
+                $design['deadline'],
+                $design['start'],
+                $design['end'],
+                $design['code'],
+                $design['status'],
+                $design['assignee'],
+                $design['designable_id'],
+                $design['designable_type'],
+                $design['comment'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Insert media data into the 'media' table
+        foreach ($mediaJsonData['data'] as $media) {
+            DB::insert('INSERT INTO `baheer-group-for-test`.`media`
+            (name, file_name, mime_type, path, disk, file_hash, collection, size, mediable_type, mediable_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $media['name'],
+                $media['file_name'],
+                $media['mime_type'],
+                $media['path'],
+                $media['disk'],
+                $media['file_hash'],
+                $media['collection'],
+                $media['size'],
+                $media['mediable_type'],
+                $media['mediable_id'],
+            ]);
+        }
+
+        return response()->json(['message' => 'Designs and associated media inserted successfully!']);
     }
 }
