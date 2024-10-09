@@ -1130,7 +1130,7 @@ class exportController extends Controller
                 'Sent For Approval' => 'Sent for Approval',
                 'Pending' => 'Design Complete',
                 'Reject' => 'Rejected',
-                default => 'Unknown',
+                default => 'New',
             };
 
             // Prepare design data
