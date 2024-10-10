@@ -1606,4 +1606,57 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Job polymers inserted successfully!']);
     }
+    public function productionCycle()
+    {
+        $productionCycle = [];
+        $productions = DB::table('production_cycle')->get();
+
+        foreach ($productions as $product) {
+            $bgpkgJob = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CTNId)->first();
+            $employee_id = 13;
+            if ($product->created_by) {
+                $user = DB::table('employeet')->where('EId', $product->created_by)->first();
+                $employee = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
+                if ($employee->employee_id) {
+                    $employee_id = $employee->employee_id;
+                } else {
+                    $employee_id = 13;
+                }
+            } else {
+                $employee_id = 13;
+            }
+
+
+            if (!$bgpkgJob) {
+                continue;
+            }
+            $status = match ($product->cycle_status) {
+                'Completed' => 'Complete',
+                'Incomplete' => 'New',
+                'Task List' => 'In Progress',
+                'Finish List' => 'Submitted',
+                default => 'New',
+            };
+            $productionCycle[] = [
+                'id' => $product->cycle_id,
+                'bgpkg_job_id' => $bgpkgJob->id,
+                'plan_quantity' => $product->cycle_plan_qty,
+                'produced' => $product->cycle_produce_qty,
+                'flute_type' => $product->cycle_flute_type,
+                'status' => $status,
+                'created_by' => $employee_id,
+                'created_by' => $product->page_arrival_time,
+                'updated_at' => $product->cycle_date
+            ];
+        }
+        $orderJson = storage_path('app/bgpkg_production_cycles.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_production_cycles',
+            'data' => $productionCycle,
+        ], JSON_PRETTY_PRINT);
+        File::put($orderJson, $orderJsonData);
+
+        return response()->json(['success' => 200]);
+    }
 }
