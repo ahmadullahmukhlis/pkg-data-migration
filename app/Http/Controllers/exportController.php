@@ -1790,4 +1790,101 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Machine cycles inserted successfully!']);
     }
+    public function production()
+    {
+        $machines = DB::table('machineproduction')->where('PrBranch', 'Production')->get();
+        $machineArray = [];
+
+        foreach ($machines as $machine) {
+            // Fetch the related job
+            $bgpkgJob = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $machine->Ctnid2)->first();
+
+            // Check if the job exists
+            if (!$bgpkgJob) {
+                continue; // Skip this machine if no related job found
+            }
+
+            // Fetch the production cycles related to this job
+            $bgpkgJobProductions = DB::table('baheer-group-for-test.bgpkg_production_cycles')->where('bgpkg_job_id', $bgpkgJob->id)->get();
+
+            // Loop through each production cycle
+            foreach ($bgpkgJobProductions as $productionCycle) {
+                // Fetch related cycle machines for each production cycle
+                $cycles = DB::table('baheer-group-for-test.bgpkg_cycle_machines')->where('bgpkg_production_cycle_id', $productionCycle->id)->get();
+
+                // Loop through each cycle machine
+                foreach ($cycles as $item) {
+                    $machineArray[] = [
+                        'bgpkg_cycle_machine_id' => $item->id,
+                        'operator' => 1190,
+                        'production_quantity' => $machine->ProductQty1 ?? 0,
+                        'waste_quantity' => $machine->Waste ?? 0,
+                        'net_quantity' => ($machine->ProductQty1 ?? 0) - ($machine->Waste ?? 0),
+                        'labors' => $machine->LaborNumber ?? 0,
+                        'comment' => $machine->MachineOperatorName,
+                        'status' => 'ثبت و تکمیل سایکل',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ];
+                }
+            }
+        }
+
+        // Save data to JSON file
+        $orderJsonPath = storage_path('app/bgpkg_machine_productions.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_machine_productions',
+            'data' => $machineArray,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+
+        return response()->json(['success' => 200]);
+    }
+
+    public function insertProduction()
+    {
+        // Path to the machine production JSON file
+        $machineProductionJsonFilePath = storage_path('app/bgpkg_machine_productions.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($machineProductionJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        // Read and decode the machine production JSON file
+        $machineProductionJson = File::get($machineProductionJsonFilePath);
+        $machineProductionData = json_decode($machineProductionJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($machineProductionData) || !isset($machineProductionData['data'])) {
+            return response()->json(['error' => 'Invalid machine production JSON structure'], 400);
+        }
+
+        // Insert machine production data into the 'bgpkg_machine_productions' table
+        foreach ($machineProductionData['data'] as $production) {
+            // Convert created_at and updated_at to MySQL datetime format
+            $createdAt = Carbon::parse($production['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($production['updated_at'])->format('Y-m-d H:i:s');
+
+            // Insert data into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_machine_productions`
+            (bgpkg_cycle_machine_id, operator, production_quantity, waste_quantity, net_quantity, labors, comment, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $production['bgpkg_cycle_machine_id'],
+                $production['operator'],
+                $production['production_quantity'],
+                $production['waste_quantity'],
+                $production['net_quantity'],
+                $production['labors'],
+                $production['comment'],
+                $production['status'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Machine productions inserted successfully!']);
+    }
 }
