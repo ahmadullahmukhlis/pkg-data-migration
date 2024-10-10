@@ -1702,4 +1702,92 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Production cycles inserted successfully!']);
     }
+    public function cycleMachine()
+    {
+        $machines = DB::table('machineproduction')->where('PrBranch', 'Production')->get();
+        $machineArray = [];
+        foreach ($machines as $machine) {
+            $bgpkgJob = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $machine->Ctnid2)->first();
+            $bgpkgJobproduction = DB::table('baheer-group-for-test.bgpkg_production_cycles')->where('bgpkg_job_id', $bgpkgJob->id)->get();
+
+            $new_machine = DB::table('baheer-group-for-test.bgpkg_machines')->where('name', $machine->MachineName)->first();
+            if ($new_machine) {
+                $machine_id = $new_machine->id;
+            } else {
+                $machine_id = 1;
+            }
+            if (!$bgpkgJobproduction) {
+                continue;
+            }
+            foreach ($bgpkgJobproduction as $item) {
+                $machineArray[] = [
+                    'bgpkg_production_cycle_id' => $item->id,
+                    'bgpkg_machine_id' => $machine_id,
+                    'final' => 1,
+                    'status' => 'تکمیل شد',
+                    'sub_status' => 'Job Complete - جاب تکمیل شد',
+                    'reason' => $machine->MachineOperatorName,
+                    'start' => $machine->WorkStartTime,
+                    'end' => $machine->WorkStartTime,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+        $orderJson = storage_path('app/bgpkg_cycle_machines.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_cycle_machines',
+            'data' => $machineArray,
+        ], JSON_PRETTY_PRINT);
+        File::put($orderJson, $orderJsonData);
+
+        return response()->json(['success' => 200]);
+    }
+    public function insertMachineCycle()
+    {
+        // Path to the machine cycle JSON file
+        $machineCycleJsonFilePath = storage_path('app/bgpkg_cycle_machines.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($machineCycleJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        // Read and decode the machine cycle JSON file
+        $machineCycleJson = File::get($machineCycleJsonFilePath);
+        $machineCycleData = json_decode($machineCycleJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($machineCycleData) || !isset($machineCycleData['data'])) {
+            return response()->json(['error' => 'Invalid machine cycle JSON structure'], 400);
+        }
+
+        // Insert machine cycle data into the 'bgpkg_cycle_machines' table
+        foreach ($machineCycleData['data'] as $cycle) {
+            // Convert start and end times to MySQL datetime format
+            $start = Carbon::parse($cycle['start'])->format('Y-m-d H:i:s');
+            $end = Carbon::parse($cycle['end'])->format('Y-m-d H:i:s');
+            $createdAt = Carbon::parse($cycle['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($cycle['updated_at'])->format('Y-m-d H:i:s');
+
+            // Insert data into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_cycle_machines`
+            (bgpkg_production_cycle_id, bgpkg_machine_id, final, status, sub_status, reason, start, end, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $cycle['bgpkg_production_cycle_id'],
+                $cycle['bgpkg_machine_id'],
+                $cycle['final'],
+                $cycle['status'],
+                $cycle['sub_status'],
+                $cycle['reason'],
+                $start,
+                $end,
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Machine cycles inserted successfully!']);
+    }
 }
