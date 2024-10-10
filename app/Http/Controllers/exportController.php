@@ -1617,7 +1617,7 @@ class exportController extends Controller
             if ($product->created_by) {
                 $user = DB::table('employeet')->where('EId', $product->created_by)->first();
                 $employee = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
-                if ($employee->employee_id) {
+                if ($employee) {
                     $employee_id = $employee->employee_id;
                 } else {
                     $employee_id = 13;
@@ -1640,12 +1640,12 @@ class exportController extends Controller
             $productionCycle[] = [
                 'id' => $product->cycle_id,
                 'bgpkg_job_id' => $bgpkgJob->id,
-                'plan_quantity' => $product->cycle_plan_qty,
-                'produced' => $product->cycle_produce_qty,
-                'flute_type' => $product->cycle_flute_type,
+                'plan_quantity' => $product->cycle_plan_qty ??  0,
+                'produced' => $product->cycle_produce_qty ?? 0,
+                'flute_type' => $product->cycle_flute_type ?? 'B',
                 'status' => $status,
                 'created_by' => $employee_id,
-                'created_by' => $product->page_arrival_time,
+                'created_at' => $product->page_arrival_time,
                 'updated_at' => $product->cycle_date
             ];
         }
@@ -1658,5 +1658,48 @@ class exportController extends Controller
         File::put($orderJson, $orderJsonData);
 
         return response()->json(['success' => 200]);
+    }
+    public function insertProductionCycle()
+    {
+        // Path to the production cycle JSON file
+        $productionCycleJsonFilePath = storage_path('app/bgpkg_production_cycles.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($productionCycleJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        // Read and decode the production cycle JSON file
+        $productionCycleJson = File::get($productionCycleJsonFilePath);
+        $productionCycleData = json_decode($productionCycleJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($productionCycleData) || !isset($productionCycleData['data'])) {
+            return response()->json(['error' => 'Invalid production cycle JSON structure'], 400);
+        }
+
+        // Insert production cycle data into the 'bgpkg_production_cycles' table
+        foreach ($productionCycleData['data'] as $cycle) {
+            // Convert created_at and updated_at to MySQL datetime format
+            $createdAt = Carbon::parse($cycle['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($cycle['updated_at'])->format('Y-m-d H:i:s');
+
+            // Insert data into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_production_cycles`
+            (id, bgpkg_job_id, plan_quantity, produced, flute_type, status, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $cycle['id'],
+                $cycle['bgpkg_job_id'],
+                $cycle['plan_quantity'],
+                $cycle['produced'],
+                $cycle['flute_type'],
+                $cycle['status'],
+                $cycle['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Production cycles inserted successfully!']);
     }
 }
