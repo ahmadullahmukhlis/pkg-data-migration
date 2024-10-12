@@ -1894,12 +1894,11 @@ class exportController extends Controller
         $detials = [];
 
         foreach ($machines as $machine) {
-
-
+            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $machine->SaleCustomerId)->first();
             $machineArray[] = [
                 'id' => $machine->SaleId,
                 'reference' => 'reference',
-                'bgpkg_customer_id' => $machine->SaleCustomerId,
+                'bgpkg_customer_id' => $customer->id,
                 'type' => 'invoice',
                 'branch_id' => 1,
                 'grand' => $machine->SaleTotalPrice ?? 0,
