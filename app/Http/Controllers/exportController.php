@@ -2054,4 +2054,40 @@ class exportController extends Controller
 
         File::put($detialsPath, $detialsJson);
     }
+    public function insertCancelJob()
+    {
+        // Path to the cancel jobs JSON file
+        $cancelJobJsonFilePath = storage_path('app/bgpkg_cancels.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($cancelJobJsonFilePath)) {
+            return response()->json(['error' => 'JSON file not found'], 404);
+        }
+
+        // Read and decode the cancel job JSON file
+        $cancelJobJson = File::get($cancelJobJsonFilePath);
+        $cancelJobData = json_decode($cancelJobJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($cancelJobData) || !isset($cancelJobData['data'])) {
+            return response()->json(['error' => 'Invalid cancel job JSON structure'], 400);
+        }
+
+        // Insert cancel job data into the 'bgpkg_cancels' table
+        foreach ($cancelJobData['data'] as $cancel) {
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_cancels`
+            (cancelable_type, cancelable_id, reason, status, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                $cancel['cancelable_type'],
+                $cancel['cancelable_id'],
+                $cancel['reason'],
+                $cancel['status'],
+                $cancel['created_by'],
+                Carbon::parse($cancel['created_at'])->format('Y-m-d H:i:s'),
+                Carbon::parse($cancel['updated_at'])->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        return response()->json(['message' => 'Cancel jobs inserted successfully!']);
+    }
 }
