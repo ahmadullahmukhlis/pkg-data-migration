@@ -1887,4 +1887,7 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Machine productions inserted successfully!']);
     }
+    public function sales(){
+        
+    }
 }
