@@ -1945,4 +1945,78 @@ class exportController extends Controller
 
         return response()->json(['success' => 200]);
     }
+    public function insertSales()
+    {
+        // Path to the sales and sales details JSON files
+        $salesJsonFilePath = storage_path('app/bgpkg_sales.json');
+        $salesDetailsJsonFilePath = storage_path('app/bgpkg_sale_details.json');
+
+        // Check if the sales JSON file exists
+        if (!File::exists($salesJsonFilePath) || !File::exists($salesDetailsJsonFilePath)) {
+            return response()->json(['error' => 'JSON files not found'], 404);
+        }
+
+        // Read and decode the sales JSON file
+        $salesJson = File::get($salesJsonFilePath);
+        $salesData = json_decode($salesJson, true);
+
+        // Validate the sales JSON structure
+        if (!is_array($salesData) || !isset($salesData['data'])) {
+            return response()->json(['error' => 'Invalid sales JSON structure'], 400);
+        }
+
+        // Read and decode the sales details JSON file
+        $salesDetailsJson = File::get($salesDetailsJsonFilePath);
+        $salesDetailsData = json_decode($salesDetailsJson, true);
+
+        // Validate the sales details JSON structure
+        if (!is_array($salesDetailsData) || !isset($salesDetailsData['data'])) {
+            return response()->json(['error' => 'Invalid sales details JSON structure'], 400);
+        }
+
+        // Insert sales data into the 'bgpkg_sales' table
+        foreach ($salesData['data'] as $sale) {
+            $createdAt = Carbon::parse($sale['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($sale['updated_at'])->format('Y-m-d H:i:s');
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_sales`
+            (id, reference, bgpkg_customer_id, type, branch_id, grand, tax, charges, discount, note, location, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $sale['id'],
+                $sale['reference'],
+                $sale['bgpkg_customer_id'],
+                $sale['type'],
+                $sale['branch_id'],
+                $sale['grand'],
+                $sale['tax'],
+                $sale['charges'],
+                $sale['discount'],
+                $sale['note'],
+                $sale['location'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        // Insert sales details into the 'bgpkg_sale_details' table
+        foreach ($salesDetailsData['data'] as $detail) {
+            $createdAt = Carbon::parse($detail['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($detail['updated_at'])->format('Y-m-d H:i:s');
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_sale_details`
+            (product_type, description, quantity, unit_price, total_price, bgpkg_sale_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+                $detail['product_type'],
+                $detail['description'],
+                $detail['quantity'],
+                $detail['unit_price'],
+                $detail['total_price'],
+                $detail['bgpkg_sale_id'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Sales and sales details inserted successfully!']);
+    }
 }
