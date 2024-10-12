@@ -1887,7 +1887,62 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Machine productions inserted successfully!']);
     }
-    public function sales(){
-        
+    public function sales()
+    {
+        $machines = DB::table('cartonsales')->get();
+        $machineArray = [];
+        $detials = [];
+
+        foreach ($machines as $machine) {
+
+
+            $machineArray[] = [
+                'id' => $machine->SaleId,
+                'reference' => 'reference',
+                'bgpkg_customer_id' => $machine->SaleCustomerId,
+                'type' => 'invoice',
+                'branch_id' => 1,
+                'grand' => $machine->SaleTotalPrice ?? 0,
+                'tax' =>  0,
+                'charges' => 0,
+                'discount' => 0,
+                'note' => $machine->SaleComment,
+                'location' => '',
+                'created_at' => $machine->SaleDate,
+                'updated_at' => now()
+            ];
+            $product = DB::table('baheer-group-for-test.bgpkg_products')->where('id', $machine->SaleCartonId)->first();
+            $detials[] = [
+                'product_type' => $product->product_tpe,
+                'description' => 'description',
+                'quantity' => $machine->SaleQty ?? 0,
+                'unit_price' => $machine->SalePrice,
+                'total_price' => $machine->SaleTotalPrice,
+                'bgpkg_sale_id' => $machine->SaleId ?? 0,
+                'created_at' => $machine->SaleDate,
+                'updated_at' => now()
+            ];
+        }
+
+        // Save data to JSON file
+        $orderJsonPath = storage_path('app/bgpkg_sales.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_sales',
+            'data' => $machineArray,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+
+        $detialsPath = storage_path('app/bgpkg_sale_details.json');
+        $detialsJson = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_sale_details',
+            'data' => $detials,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($detialsPath, $detialsJson);
+
+        return response()->json(['success' => 200]);
     }
 }
