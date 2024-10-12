@@ -2096,7 +2096,7 @@ class exportController extends Controller
         $notFound = 0;
         $designs = DB::table('baheer-group-for-test.bgpkg_designs')->where('status', 'New')->where('designable_type', 'App\Models\Bgpkg\BgpkgOrder')->get();
         foreach ($designs as  $desgn) {
-            $job = DB::table('baheer-group-for-test.bgpkg_orders')->where('bgpkg_order_id ', $desgn->designable_id)->first();
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('bgpkg_order_id ', $desgn->designable_id)->first();
             if ($job) {
                 $desgn->update([
                     'status' => 'Done'
