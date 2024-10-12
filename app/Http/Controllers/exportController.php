@@ -1892,13 +1892,25 @@ class exportController extends Controller
         $machines = DB::table('cartonsales')->get();
         $machineArray = [];
         $detials = [];
-
+        $not = 0;
         foreach ($machines as $machine) {
+
             $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $machine->SaleCustomerId)->first();
+            $customer = DB::table('ppcustomer')->where('CustId',  $machine->SaleCustomerId)->first();
+            if (!$customer) {
+                $not += 1;
+                echo $not . '</br>';
+                continue;
+            }
+
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
+                ->where('created_at', $customer->CusRegistrationDate)
+                ->first();
             $machineArray[] = [
                 'id' => $machine->SaleId,
                 'reference' => 'reference',
-                'bgpkg_customer_id' => $customer->id,
+                'bgpkg_customer_id' => $new_customer->id,
                 'type' => 'invoice',
                 'branch_id' => 1,
                 'grand' => $machine->SaleTotalPrice ?? 0,
