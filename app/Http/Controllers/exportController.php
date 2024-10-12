@@ -1913,7 +1913,7 @@ class exportController extends Controller
             ];
             $product = DB::table('baheer-group-for-test.bgpkg_products')->where('id', $machine->SaleCartonId)->first();
             $detials[] = [
-                'product_type' => $product->product_tpe,
+                'product_type' => $product->product_type,
                 'description' => 'description',
                 'quantity' => $machine->SaleQty ?? 0,
                 'unit_price' => $machine->SalePrice,
