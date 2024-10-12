@@ -2032,17 +2032,17 @@ class exportController extends Controller
     }
     public function cancelJob()
     {
-        $cancels = DB::table('baheer-group-for-test.bgpkg_jobs')->where('location', 'cancel')->first();
+        $cancels = DB::table('baheer-group-for-test.bgpkg_jobs')->where('location', 'cancel')->get();
         $cancelArray = [];
         foreach ($cancels as $cancel) {
-            $cancels[] = [
+            $cancelArray[] = [
                 'cancelable_type' => 'App\Models\Bgpkg\BgpkgJob',
-                'cancelable_id' => $cancel->id,
+                'cancelable_id' => $cancel->id ?? 0,
                 'reason' => 'in old system the was rejected and canceled ',
                 'status' => 'approved',
                 'created_by' => null,
-                'created_at' => $cancel->created_at,
-                'updated_at' => $cancel->created_at
+                'created_at' => $cancel->created_at ?? now(),
+                'updated_at' => $cancel->created_at ?? now()
             ];
         }
         $detialsPath = storage_path('app/bgpkg_cancels.json');
@@ -2053,6 +2053,7 @@ class exportController extends Controller
         ], JSON_PRETTY_PRINT);
 
         File::put($detialsPath, $detialsJson);
+        return response()->json(['success' => 'the cancel json is created successfully ']);
     }
     public function insertCancelJob()
     {
