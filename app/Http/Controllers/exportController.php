@@ -2094,17 +2094,31 @@ class exportController extends Controller
     public function updateDesign()
     {
         $notFound = 0;
-        $designs = DB::table('baheer-group-for-test.bgpkg_designs')->where('status', 'New')->where('designable_type', 'App\Models\Bgpkg\BgpkgOrder')->get();
-        foreach ($designs as  $desgn) {
-            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('bgpkg_order_id ', $desgn->designable_id)->first();
+
+        // Fetch all designs with status 'New' and specific designable_type
+        $designs = DB::table('baheer-group-for-test.bgpkg_designs')
+            ->where('status', 'New')
+            ->where('designable_type', 'App\Models\Bgpkg\BgpkgOrder')
+            ->get();
+
+        foreach ($designs as $desgn) {
+            // Find the corresponding job
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')
+                ->where('bgpkg_order_id', $desgn->designable_id)
+                ->first();
+
             if ($job) {
-                $desgn->update([
-                    'status' => 'Done'
-                ]);
+                // Update the design status using the query builder
+                DB::table('baheer-group-for-test.bgpkg_designs')
+                    ->where('id', $desgn->id)
+                    ->update(['status' => 'Done']);
             } else {
+                // Increment and display not found counter
                 $notFound += 1;
                 echo $notFound . '<br/>';
             }
         }
+
+        return response()->json(['success' => 'The table is updated successfully']);
     }
 }
