@@ -2147,10 +2147,12 @@ class exportController extends Controller
                 $model = 'App\Models\Bgpkg\BgpkgJob';
             }
             $employee = DB::table('employeet')->where('EId',  $machine->EmpIdFollow)->first();
-
-
+            if (!$employee) {
+                $not += 1;
+                echo $not . ' - ';
+            }
             $new_employee = DB::table('baheer-group-for-test.users')
-                ->where('name', 'like', '%' . $employee->EUserName . '%')->first();
+                ->where('name', 'like', '%' . $employee?->EUserName . '%')->first();
             $machineArray[] = [
                 'type' => $type,
                 'follow_date' => $machine->FollowDate,
