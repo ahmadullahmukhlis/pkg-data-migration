@@ -2166,7 +2166,7 @@ class exportController extends Controller
                 'followed_by' => $new_employee->employee_id,
                 'assignee' => null,
                 'followable_type' => $model,
-                'followable_id ' => $machine->CtnIdFollow,
+                'followable_id ' => $machine->CtnIdFollow ?? 0,
                 'created_at' => now(),
                 'updated_at' => now()
             ];
