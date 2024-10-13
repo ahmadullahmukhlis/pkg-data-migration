@@ -2153,15 +2153,17 @@ class exportController extends Controller
             }
             $new_employee = DB::table('baheer-group-for-test.users')
                 ->where('name', 'like', '%' . $employee?->EUserName . '%')->first();
+            $nextFollowDate = Carbon::parse($machine->FollowDate)->addMonth();
+
             $machineArray[] = [
                 'type' => $type,
                 'follow_date' => $machine->FollowDate,
-                'next_follow_date' => $machine->AlarmDate,
+                'next_follow_date' => $nextFollowDate,
                 'contact_via' => $machine->FollowVia,
                 'comment' => $machine->FollowComment,
                 'result' =>  $machine->FollowResult,
                 'status' => 'ongoing', //the datanot in the old system becaus we selected the ongiong
-                'followed_by' => $new_employee->id,
+                'followed_by' => $new_employee->employee_id,
                 'assignee' => null,
                 'followable_type' => $model,
                 'followable_id ' => $machine->CtnIdFollow,
@@ -2204,13 +2206,14 @@ class exportController extends Controller
         foreach ($followupJsonData['data'] as $followup) {
             $createdAt = isset($followup['created_at']) ? Carbon::parse($followup['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($followup['updated_at']) ? Carbon::parse($followup['updated_at'])->format('Y-m-d H:i:s') : now();
+            $next = isset($followup['next_follow_date']) ? Carbon::parse($followup['next_follow_date'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_follow_ups`
             (type, follow_date, next_follow_date, contact_via, comment, result, status, followed_by, assignee, followable_type, followable_id, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $followup['type'],
                 $followup['follow_date'],
-                $followup['next_follow_date'],
+                $next,
                 $followup['contact_via'],
                 $followup['comment'],
                 $followup['result'],
