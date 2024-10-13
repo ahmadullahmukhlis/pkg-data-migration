@@ -2179,4 +2179,49 @@ class exportController extends Controller
         File::put($orderJsonPath, $orderJsonData);
         return response()->json(['success' => 200]);
     }
+    public function insertFollowup()
+    {
+        // Path to the JSON file
+        $followupJsonFilePath = storage_path('app/bgpkg_follow_ups.json');
+
+        // Check if the file exists
+        if (!File::exists($followupJsonFilePath)) {
+            return response()->json(['error' => 'Follow-up JSON file not found'], 404);
+        }
+
+        // Read and decode the follow-up JSON file
+        $followupJson = File::get($followupJsonFilePath);
+        $followupJsonData = json_decode($followupJson, true);
+
+        // Validate JSON structure
+        if (!is_array($followupJsonData) || !isset($followupJsonData['data'])) {
+            return response()->json(['error' => 'Invalid follow-up JSON structure'], 400);
+        }
+
+        // Insert follow-up data into the 'bgpkg_follow_ups' table
+        foreach ($followupJsonData['data'] as $followup) {
+            $createdAt = isset($followup['created_at']) ? Carbon::parse($followup['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($followup['updated_at']) ? Carbon::parse($followup['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_follow_ups`
+            (type, follow_date, next_follow_date, contact_via, comment, result, status, followed_by, assignee, followable_type, followable_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $followup['type'],
+                $followup['follow_date'],
+                $followup['next_follow_date'],
+                $followup['contact_via'],
+                $followup['comment'],
+                $followup['result'],
+                $followup['status'],
+                $followup['followed_by'],
+                $followup['assignee'],
+                $followup['followable_type'],
+                $followup['followable_id '],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Follow-ups inserted successfully!']);
+    }
 }
