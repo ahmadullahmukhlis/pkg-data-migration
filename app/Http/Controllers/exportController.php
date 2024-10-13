@@ -2121,4 +2121,62 @@ class exportController extends Controller
 
         return response()->json(['success' => 'The table is updated successfully']);
     }
+    public function followup()
+    {
+        $machines = DB::table('ctnfollowup')->get();
+        $machineArray = [];
+        $detials = [];
+        $not = 0;
+        $type = '';
+        $model = '';
+        foreach ($machines as $machine) {
+            if ($machine->FollowupType == 'Product') {
+                $type = 'quotation';
+                $model = 'App\Models\Bgpkg\BgpkgProduct';
+            } else   if ($machine->FollowupType == 'Quotation') {
+                $type = 'quotation';
+                $model = 'App\Models\Bgpkg\BgpkgProduct';
+            } else   if ($machine->FollowupType == 'Customer') {
+                $type = 'customer';
+                $model = 'App\Models\Bgpkg\BgpkgCustomer';
+            } else   if ($machine->FollowupType == 'Job') {
+                $type = 'job';
+                $model = 'App\Models\Bgpkg\BgpkgJob';
+            } else {
+                $type = 'finished';
+                $model = 'App\Models\Bgpkg\BgpkgJob';
+            }
+            $employee = DB::table('employeet')->where('EId',  $machine->EmpIdFollow)->first();
+
+
+            $new_employee = DB::table('baheer-group-for-test.users')
+                ->where('name', 'like', '%' . $employee->EUserName . '%')->first();
+            $machineArray[] = [
+                'type' => $type,
+                'follow_date' => $machine->FollowDate,
+                'next_follow_date' => $machine->AlarmDate,
+                'contact_via' => $machine->FollowVia,
+                'comment' => $machine->FollowComment,
+                'result' =>  $machine->FollowResult,
+                'status' => 'ongoing', //the datanot in the old system becaus we selected the ongiong
+                'followed_by' => $new_employee->id,
+                'assignee' => null,
+                'followable_type' => $model,
+                'followable_id ' => $machine->CtnIdFollow,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+
+        // Save data to JSON file
+        $orderJsonPath = storage_path('app/bgpkg_follow_ups.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_follow_ups',
+            'data' => $machineArray,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+        return response()->json(['success' => 200]);
+    }
 }
