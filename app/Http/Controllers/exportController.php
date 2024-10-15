@@ -2262,4 +2262,43 @@ class exportController extends Controller
         File::put($orderJsonPath, $orderJsonData);
         return response()->json(['success' => 200]);
     }
+    public function insertStockIn()
+    {
+        // Path to the JSON file
+        $stockJsonFilePath = storage_path('app/bgpkg_stocks.json');
+
+        // Check if the file exists
+        if (!File::exists($stockJsonFilePath)) {
+            return response()->json(['error' => 'Stock JSON file not found'], 404);
+        }
+
+        // Read and decode the stock JSON file
+        $stockJson = File::get($stockJsonFilePath);
+        $stockJsonData = json_decode($stockJson, true);
+
+        // Validate JSON structure
+        if (!is_array($stockJsonData) || !isset($stockJsonData['data'])) {
+            return response()->json(['error' => 'Invalid stock JSON structure'], 400);
+        }
+
+        // Insert stock data into the 'bgpkg_stocks' table
+        foreach ($stockJsonData['data'] as $stock) {
+            $createdAt = isset($stock['created_at']) ? Carbon::parse($stock['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($stock['updated_at']) ? Carbon::parse($stock['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stocks`
+            (id, quantity, location, type, bgpkg_job_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                $stock['id'],
+                $stock['quantity'],
+                $stock['location'],
+                $stock['type'],
+                $stock['bgpkg_job_id'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Stock-in data inserted successfully!']);
+    }
 }
