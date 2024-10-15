@@ -8,4 +8,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 // Route::get('/', [exportController::class, 'insertStockIn']);
-Route::get('/home', [testcontroller::class, 'index']);
+Route::get('/home', [testcontroller::class, 'sendSms']);
