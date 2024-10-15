@@ -2248,7 +2248,7 @@ class exportController extends Controller
                 'location' => $product->ProBrach ?? '',
                 'type' => $carton->CTNUnit,
                 'bgpkg_job_id' => $job->id,
-                'created_at' => now(),
+                'created_at' => $product->StockInDate,
                 'updated_at' => now()
             ];
         }
