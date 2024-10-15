@@ -2229,4 +2229,37 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Follow-ups inserted successfully!']);
     }
+    public function stockIn()
+    {
+        $productions = DB::table('cartonproduction')->whereNotNull('StockInDate')->get();
+        $array = [];
+        $notFound = 0;
+        foreach ($productions as $product) {
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CtnId1)->first();
+            $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
+            if (!$job) {
+                $notFound += 1;
+                echo $notFound;
+                continue;
+            }
+            $array[] = [
+                'id' => $product->ProId,
+                'quantity' => $product->ProQty ?? 0,
+                'location' => $product->ProBrach ?? '',
+                'type' => $carton->CTNUnit,
+                'bgpkg_job_id' => $job->id,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+        $orderJsonPath = storage_path('app/bgpkg_stocks.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_stocks',
+            'data' => $array,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+        return response()->json(['success' => 200]);
+    }
 }
