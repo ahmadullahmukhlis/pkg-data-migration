@@ -2354,4 +2354,57 @@ class exportController extends Controller
         File::put($orderJsonPath, $orderJsonData);
         return response()->json(['success' => 200]);
     }
+    public function insertStockOut()
+    {
+        // Path to the JSON file
+        $stockOutJsonFilePath = storage_path('app/bgpkg_stock_deliveries.json');
+
+        // Check if the file exists
+        if (!File::exists($stockOutJsonFilePath)) {
+            return response()->json(['error' => 'Stock-out JSON file not found'], 404);
+        }
+
+        // Read and decode the stock-out JSON file
+        $stockOutJson = File::get($stockOutJsonFilePath);
+        $stockOutJsonData = json_decode($stockOutJson, true);
+
+        // Validate JSON structure
+        if (!is_array($stockOutJsonData) || !isset($stockOutJsonData['data'])) {
+            return response()->json(['error' => 'Invalid stock-out JSON structure'], 400);
+        }
+
+        // Insert stock-out data into the 'bgpkg_stock_deliveries' table
+        foreach ($stockOutJsonData['data'] as $stockOut) {
+            $createdAt = isset($stockOut['created_at']) ? Carbon::parse($stockOut['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($stockOut['updated_at']) ? Carbon::parse($stockOut['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stock_deliveries`
+            (id, code, type, bgpkg_customer_id, branch_id, disposal_to, bgpkg_job_id, memo, quantity, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $stockOut['id'],
+                $stockOut['code'],
+                $stockOut['type'],
+                $stockOut['bgpkg_customer_id'],
+                $stockOut['branch_id'],
+                $stockOut['disposal_to'],
+                $stockOut['bgpkg_job_id'],
+                $stockOut['memo'],
+                $stockOut['quantity'],
+                $stockOut['driver'],
+                $stockOut['driver_phone'],
+                $stockOut['vehicle_type'],
+                $stockOut['vehicle_plate'],
+                $stockOut['note'],
+                $stockOut['created_by'],
+                $stockOut['approval_status'],
+                $stockOut['check_status'],
+                $stockOut['checked_by'],
+                $stockOut['finance_status'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Stock-out data inserted successfully!']);
+    }
 }
