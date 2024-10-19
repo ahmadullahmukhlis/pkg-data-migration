@@ -2344,5 +2344,14 @@ class exportController extends Controller
                 'updated_at' => now()
             ];
         }
+        $orderJsonPath = storage_path('app/bgpkg_stock_deliveries.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_stock_deliveries',
+            'data' => $array,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+        return response()->json(['success' => 200]);
     }
 }
