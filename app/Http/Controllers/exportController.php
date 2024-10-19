@@ -2301,4 +2301,48 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Stock-in data inserted successfully!']);
     }
+    public function stockOut()
+    {
+        $notFound = 0;
+        $not = 0;
+        $stock = DB::table('cartonstockout')->get();
+
+        $array = [];
+        foreach ($stock as $item) {
+            $customer = DB::table('baheer-group-for-test.bpgkg_customers')->where('id', $stock->CtnCustomerId)->first();
+            $job = DB::table('baheer-group-for-test.bgpkg_stocks')->where('id', $stock->PrStockId)->first();
+            if (!$job) {
+                $not += 1;
+                echo 'job not fountd' . $not;
+            }
+            if (!$customer) {
+                $notFound += 1;
+                echo 'customer not fount ' . $notFound;
+                continue;
+            }
+            $array[] = [
+                'id' => $stock->CtnoutId,
+                'code' => $stock->GDNumber,
+                'type' => 'Delivery',
+                'bgpkg_customer_id' => $customer->id,
+                'branch_id' => 1,
+                'disposal_to' => null,
+                'bgpkg_job_id' => $job->bgpkg_job_id,
+                'memo' => 'memo',
+                'quantity' => $stock->CtnOutQty,
+                'driver' => $stock->CtnDriverName,
+                'driver_phone' => $stock->CtnDriverMobileNo,
+                'vehicle_type' => $stock->CtnCarName,
+                'vehicle_plate' => $stock->CtnCarNo,
+                'note' => $stock->CoutComment,
+                'created_by' => 179,
+                'approval_status' => 'approved',
+                'check_status' => 'Approved',
+                'checked_by' => null,
+                'finance_status' => 'Approved',
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+        }
+    }
 }

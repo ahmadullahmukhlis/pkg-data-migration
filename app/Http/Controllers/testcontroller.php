@@ -65,4 +65,5 @@ class testcontroller extends Controller
         //     return response()->json(['error' => 'Failed to send SMS'], 400);
         // }
     }
+
 }
