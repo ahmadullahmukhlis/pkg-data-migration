@@ -2305,19 +2305,23 @@ class exportController extends Controller
     {
         $notFound = 0;
         $not = 0;
-        $stock = DB::table('cartonstockout')->get();
+        $stocks = DB::table('cartonstockout')->get();
 
         $array = [];
-        foreach ($stock as $item) {
-            $customer = DB::table('baheer-group-for-test.bpgkg_customers')->where('id', $stock->CtnCustomerId)->first();
-            $job = DB::table('baheer-group-for-test.bgpkg_stocks')->where('id', $stock->PrStockId)->first();
+        foreach ($stocks as $stock) {
+            $ppCustomer = DB::table('ppcustomer')->where('CustId', $stock->CtnCustomerId)->first();
+            if (!$ppCustomer) {
+                continue;
+            }
+            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('customer_name', $ppCustomer->CustName)->first();
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->PrStockId)->first();
             if (!$job) {
                 $not += 1;
-                echo 'job not fountd' . $not;
+                echo 'job not fountd ' . $stock->PrStockId . '" - "' .  $not . '<br>';
             }
             if (!$customer) {
                 $notFound += 1;
-                echo 'customer not fount ' . $notFound;
+                echo 'customer not fount ' . $notFound . '<br>';
                 continue;
             }
             $array[] = [
@@ -2327,7 +2331,7 @@ class exportController extends Controller
                 'bgpkg_customer_id' => $customer->id,
                 'branch_id' => 1,
                 'disposal_to' => null,
-                'bgpkg_job_id' => $job->bgpkg_job_id,
+                'bgpkg_job_id' => $job->id ?? null,
                 'memo' => 'memo',
                 'quantity' => $stock->CtnOutQty,
                 'driver' => $stock->CtnDriverName,
