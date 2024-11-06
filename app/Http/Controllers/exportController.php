@@ -2323,15 +2323,16 @@ class exportController extends Controller
             if (!$job) {
                 $not += 1;
                 echo 'job not fountd ' . $stock->PrStockId . '" "' .  $not . '<br>';
+                continue;
             }
             $array[] = [
                 'id' => $stock->CtnoutId,
-                'code' => $stock->GDNumber,
+                'code' => $stock->GDNumber ?? 'jdn',
                 'type' => 'Delivery',
                 'bgpkg_customer_id' => $customer->id,
                 'branch_id' => 1,
                 'disposal_to' => null,
-                'bgpkg_job_id' => $job->id ?? null,
+                'bgpkg_job_id' => $job->bgpkg_job_id,
                 'memo' => 'memo',
                 'quantity' => $stock->CtnOutQty,
                 'driver' => $stock->CtnDriverName,
@@ -2385,7 +2386,7 @@ class exportController extends Controller
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stock_deliveries`
             (id, code, type, bgpkg_customer_id, branch_id, disposal_to, bgpkg_job_id, memo, quantity, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status,finance_by , created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)', [
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)', [
                 $stockOut['id'],
                 $stockOut['code'],
                 $stockOut['type'],
