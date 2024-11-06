@@ -2344,6 +2344,7 @@ class exportController extends Controller
                 'check_status' => 'Approved',
                 'checked_by' => null,
                 'finance_status' => 'Approved',
+                'finance_by' => null,
                 'created_at' => now(),
                 'updated_at' => now()
             ];
@@ -2383,8 +2384,8 @@ class exportController extends Controller
             $updatedAt = isset($stockOut['updated_at']) ? Carbon::parse($stockOut['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stock_deliveries`
-            (id, code, type, bgpkg_customer_id, branch_id, disposal_to, bgpkg_job_id, memo, quantity, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            (id, code, type, bgpkg_customer_id, branch_id, disposal_to, bgpkg_job_id, memo, quantity, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status,finance_by , created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)', [
                 $stockOut['id'],
                 $stockOut['code'],
                 $stockOut['type'],
@@ -2404,6 +2405,7 @@ class exportController extends Controller
                 $stockOut['check_status'],
                 $stockOut['checked_by'],
                 $stockOut['finance_status'],
+                $stockOut['finance_by'],
                 $createdAt,
                 $updatedAt,
             ]);
