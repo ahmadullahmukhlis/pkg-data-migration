@@ -2314,15 +2314,15 @@ class exportController extends Controller
                 continue;
             }
             $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('customer_name', $ppCustomer->CustName)->first();
-            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->PrStockId)->first();
-            if (!$job) {
-                $not += 1;
-                echo 'job not fountd ' . $stock->PrStockId . '" - "' .  $not . '<br>';
-            }
             if (!$customer) {
                 $notFound += 1;
                 echo 'customer not fount ' . $notFound . '<br>';
                 continue;
+            }
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->PrStockId)->first();
+            if (!$job) {
+                $not += 1;
+                echo 'job not fountd ' . $stock->PrStockId . '" "' .  $not . '<br>';
             }
             $array[] = [
                 'id' => $stock->CtnoutId,
