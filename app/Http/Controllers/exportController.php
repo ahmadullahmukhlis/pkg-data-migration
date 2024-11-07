@@ -282,15 +282,16 @@ class exportController extends Controller
             }
             DB::insert(
                 'INSERT INTO `baheer-group-for-test`.`bgpkg_customers`
-                    ( customer_name, contact_person, job_title, gender, qoutation_sending_address,
+                    ( customer_name,customer_code, contact_person, job_title, gender, qoutation_sending_address,
                     finish_goods_shipment_address, time_line, time_line_type, full_address, status, category_id,
                     specification_id, business_type_id, branch_id, payment_term_id, country_id, state_id,
                     region_id, reference_id, created_by, approved_by, assign_to, bussness_nature, logo, extras,
                     created_at, updated_at)
-                VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                VALUES ( ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [
 
                     $customer['customer_name'],
+                    $customer['customer_code'],
                     $customer['contact_person'],
                     $customer['job_title'],
                     $customer['gender'],
