@@ -414,8 +414,9 @@ class exportController extends Controller
 
         foreach ($ppCustomers as $customer) {
             // Use parameterized queries to avoid SQL injection
-            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('id',   $customer->CustId)
+            $new_customer = DB::table('baheer-group.bgpkg_customers')
+                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
+                ->where('created_at', $customer?->CusRegistrationDate)
                 ->value('id');
             $mappedData[] = [
                 'work_phone' => $customer->CustWorkPhone,
@@ -468,7 +469,7 @@ class exportController extends Controller
             $updatedAt = Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s');
 
             // Insert data into the 'contacts' table using a parameterized query
-            DB::insert('INSERT INTO `baheer-group-for-test`.`contacts`
+            DB::insert('INSERT INTO `baheer-group`.`contacts`
                     (work_phone, personal_phone, whatsapp, main_email, cc_email, website_url, contactable_type, contactable_id, created_by, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $item['work_phone'],
@@ -503,7 +504,7 @@ class exportController extends Controller
             $year = $orderDate->format('y');
             $code = 'PKG' . $year . '-' . $carton->CTNId;
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('id',   $customer->CustId)
+                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
                 ->first();
 
             if (!$new_customer) {
@@ -851,7 +852,7 @@ class exportController extends Controller
 
             // Fetch new customer
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('id',   $customer->CustId)
+                ->where('created_at', $customer?->CusRegistrationDate)
                 ->first();
 
             // Fetch order related to die
