@@ -356,7 +356,6 @@ class exportController extends Controller
             $assign = DB::table('baheer-group-for-test.users')
                 ->where('employee_id', $customer->FollowupResponsible)
                 ->value('id');
-            $date = Carbon::parse($customer->CusRegistrationDate);
             // Map the data for each customer
             $mappedData[] = [
                 'id' => $customer->CustId,
@@ -416,7 +415,7 @@ class exportController extends Controller
         foreach ($ppCustomers as $customer) {
             // Use parameterized queries to avoid SQL injection
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer->CustName . '%')->where('created_at', $customer->CusRegistrationDate)
+                ->where('id',   $customer->CustId)
                 ->value('id');
             $mappedData[] = [
                 'work_phone' => $customer->CustWorkPhone,
@@ -504,8 +503,7 @@ class exportController extends Controller
             $year = $orderDate->format('y');
             $code = 'PKG' . $year . '-' . $carton->CTNId;
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
-                ->where('created_at', $customer->CusRegistrationDate)
+                ->where('id',   $customer->CustId)
                 ->first();
 
             if (!$new_customer) {
@@ -853,8 +851,7 @@ class exportController extends Controller
 
             // Fetch new customer
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer->CustName . '%')
-                ->where('created_at', $customer->CusRegistrationDate)
+                ->where('id',   $customer->CustId)
                 ->first();
 
             // Fetch order related to die
@@ -2316,7 +2313,7 @@ class exportController extends Controller
             if (!$ppCustomer) {
                 continue;
             }
-            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('customer_name', $ppCustomer->CustName)->first();
+            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $ppCustomer->CustId)->first();
             if (!$customer) {
                 $notFound += 1;
                 echo 'customer not fount ' . $notFound . '<br>';
