@@ -355,11 +355,11 @@ class exportController extends Controller
             $assign = DB::table('baheer-group-for-test.users')
                 ->where('employee_id', $customer->FollowupResponsible)
                 ->value('id');
-
+            $date = Carbon::parse($customer->CusRegistrationDate);
             // Map the data for each customer
             $mappedData[] = [
                 'id' => $customer->CustId,
-                'customer_code' => 'PKG' . $customer->CustId,
+                'customer_code' => 'PKG ' . $date->format('y') . ' - ' . $customer->CustId,
                 'customer_name' => $customer->CustName,
                 'contact_person' => $customer->CustContactPerson,
                 'job_title' => $customer->CustPostion,
