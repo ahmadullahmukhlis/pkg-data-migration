@@ -281,7 +281,7 @@ class exportController extends Controller
                 $nature = ' ';
             }
             DB::insert(
-                'INSERT INTO `baheer-group-for-test`.`bgpkg_customers`
+                'INSERT INTO `baheer-group`.`bgpkg_customers`
                     ( customer_name,customer_code, contact_person, job_title, gender, qoutation_sending_address,
                     finish_goods_shipment_address, time_line, time_line_type, full_address, status, category_id,
                     specification_id, business_type_id, branch_id, payment_term_id, country_id, state_id,
@@ -359,7 +359,7 @@ class exportController extends Controller
             // Map the data for each customer
             $mappedData[] = [
                 'id' => $customer->CustId,
-                'customer_code' => 'PKG ' . $date->format('y') . ' - ' . $customer->CustId,
+                'customer_code' => 'PKG-' . $customer->CustId,
                 'customer_name' => $customer->CustName,
                 'contact_person' => $customer->CustContactPerson,
                 'job_title' => $customer->CustPostion,

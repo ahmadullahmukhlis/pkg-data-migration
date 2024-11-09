@@ -4,8 +4,8 @@ use App\Http\Controllers\exportController;
 use App\Http\Controllers\testcontroller;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-// Route::get('/', [exportController::class, 'insertStockOut']);
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+Route::get('/', [exportController::class, 'customer']);
 // Route::get('/home', [testcontroller::class, 'index']);
