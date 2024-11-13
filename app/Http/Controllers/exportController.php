@@ -2309,6 +2309,7 @@ class exportController extends Controller
         $stocks = DB::table('cartonstockout')->get();
 
         $array = [];
+        $details = [];
         foreach ($stocks as $stock) {
             $ppCustomer = DB::table('ppcustomer')->where('CustId', $stock->CtnCustomerId)->first();
             if (!$ppCustomer) {
@@ -2333,9 +2334,9 @@ class exportController extends Controller
                 'bgpkg_customer_id' => $customer->id,
                 'branch_id' => 1,
                 'disposal_to' => null,
-                'bgpkg_job_id' => $job->bgpkg_job_id,
-                'memo' => 'memo',
-                'quantity' => $stock->CtnOutQty,
+                // 'bgpkg_job_id' => $job->bgpkg_job_id,
+                // 'memo' => 'memo',
+                // 'quantity' => $stock->CtnOutQty,
                 'driver' => $stock->CtnDriverName,
                 'driver_phone' => $stock->CtnDriverMobileNo,
                 'vehicle_type' => $stock->CtnCarName,
@@ -2350,6 +2351,15 @@ class exportController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ];
+            $detials[] = [
+                'bgpkg_stock_delivery_id' => $stock->CtnoutId,
+                'bgpkg_job_id' => $job->bgpkg_job_id,
+                'memo' => 'memo',
+                'quantity' => $stock->CtnOutQty,
+                'reason' => null,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
         }
         $orderJsonPath = storage_path('app/bgpkg_stock_deliveries.json');
         $orderJsonData = json_encode([
@@ -2359,6 +2369,15 @@ class exportController extends Controller
         ], JSON_PRETTY_PRINT);
 
         File::put($orderJsonPath, $orderJsonData);
+
+        $detailsPath = storage_path('app/bgpkg_deliver_details.json');
+        $detialJson = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_deliver_details',
+            'data' => $array,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($detailsPath, $detialJson);
         return response()->json(['success' => 200]);
     }
     public function insertStockOut()
@@ -2386,17 +2405,17 @@ class exportController extends Controller
             $updatedAt = isset($stockOut['updated_at']) ? Carbon::parse($stockOut['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stock_deliveries`
-            (id, code, type, bgpkg_customer_id, branch_id, disposal_to, bgpkg_job_id, memo, quantity, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status,finance_by , created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)', [
+            (id, code, type, bgpkg_customer_id, branch_id, disposal_to, driver, driver_phone, vehicle_type, vehicle_plate, note, created_by, approval_status, check_status, checked_by, finance_status,finance_by , created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $stockOut['id'],
                 $stockOut['code'],
                 $stockOut['type'],
                 $stockOut['bgpkg_customer_id'],
                 $stockOut['branch_id'],
                 $stockOut['disposal_to'],
-                $stockOut['bgpkg_job_id'],
-                $stockOut['memo'],
-                $stockOut['quantity'],
+                // $stockOut['bgpkg_job_id'],
+                // $stockOut['memo'],
+                // $stockOut['quantity'],
                 $stockOut['driver'],
                 $stockOut['driver_phone'],
                 $stockOut['vehicle_type'],
@@ -2412,7 +2431,35 @@ class exportController extends Controller
                 $updatedAt,
             ]);
         }
+        $jsonFile = storage_path('app/bgpkg_deliver_details.json');
+        if (!File::exists($jsonFile)) {
+            return response()->json(['error' => 'Stock-out JSON file not found'], 404);
+        }
 
+        // Read and decode the stock-out JSON file
+        $detialgetjsondata = File::get($jsonFile);
+        $josonData = json_decode($detialgetjsondata, true);
+
+        // Validate JSON structure
+        if (!is_array($josonData) || !isset($josonData['data'])) {
+            return response()->json(['error' => 'Invalid stock-out JSON structure'], 400);
+        }
+        foreach ($josonData['data'] as $item) {
+            $createdAt = isset($item['created_at']) ? Carbon::parse($item['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($item['updated_at']) ? Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_deliver_details`
+            (bgpkg_stock_delivery_id, bgpkg_job_id, memo, quantity, reason, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                $item['bgpkg_stock_delivery_id'],
+                $item['bgpkg_job_id'],
+                $item['memo'],
+                $item['quantity'],
+                $item['reason'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
         return response()->json(['message' => 'Stock-out data inserted successfully!']);
     }
 }
