@@ -90,7 +90,7 @@ class exportController extends Controller
     {
         $ppCustomers = DB::select('select CusSpecification from ppcustomer group by CusSpecification ');
         $mappedData = [];
-        $i = 6;
+        $i = 7;
         foreach ($ppCustomers as $customer) {
             $mappedData[] = [
                 'id' => $i,
@@ -146,7 +146,7 @@ class exportController extends Controller
     {
         $ppCustomers = DB::select('select BusinessType from ppcustomer group by BusinessType ');
         $mappedData = [];
-        $i = 6;
+        $i = 25;
         foreach ($ppCustomers as $customer) {
             $mappedData[] = [
                 'id' => $i,
@@ -200,9 +200,16 @@ class exportController extends Controller
     public function reference()
     {
         $ppCustomers = DB::select('SELECT CusReference FROM ppcustomer WHERE CusReference IS NOT NULL GROUP BY CusReference ');
+
         $mappedData = [];
         $i = 6;
         foreach ($ppCustomers as $customer) {
+            $reference = DB::table('baheer-group-for-test.references')
+                ->where('name', $customer->CusReference)
+                ->first();
+            if (! $reference) {
+                continue;
+            }
             $mappedData[] = [
                 'id' => $i,
                 'name' => $customer->CusReference,
@@ -414,10 +421,9 @@ class exportController extends Controller
 
         foreach ($ppCustomers as $customer) {
             // Use parameterized queries to avoid SQL injection
-            $new_customer = DB::table('baheer-group.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
-                ->where('created_at', $customer?->CusRegistrationDate)
-                ->value('id');
+            $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
+                ->where('id',  $customer->CustId)
+                ->first();
             $mappedData[] = [
                 'work_phone' => $customer->CustWorkPhone,
                 'personal_phone' => null,
@@ -426,7 +432,7 @@ class exportController extends Controller
                 'cc_email' => null,
                 'website_url' => $customer->CustWebsite,
                 'contactable_type' => 'App\Models\Bgpkg\BgpkgCustomer',
-                'contactable_id' => $new_customer,
+                'contactable_id' => $new_customer->id,
                 'created_by' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -469,7 +475,7 @@ class exportController extends Controller
             $updatedAt = Carbon::parse($item['updated_at'])->format('Y-m-d H:i:s');
 
             // Insert data into the 'contacts' table using a parameterized query
-            DB::insert('INSERT INTO `baheer-group`.`contacts`
+            DB::insert('INSERT INTO `baheer-group-for-test`.`contacts`
                     (work_phone, personal_phone, whatsapp, main_email, cc_email, website_url, contactable_type, contactable_id, created_by, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $item['work_phone'],
@@ -504,7 +510,7 @@ class exportController extends Controller
             $year = $orderDate->format('y');
             $code = 'PKG' . $year . '-' . $carton->CTNId;
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
+                ->where('id',  $customer->CustId)
                 ->first();
 
             if (!$new_customer) {
@@ -557,7 +563,7 @@ class exportController extends Controller
                 'paper_weight' => null,
                 'waste_weight' => null,
                 'sheet_size' => null,
-                'deadline' => $carton->CTNFinishDate,
+                'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
                 'job_card_note' => $carton->Note,
                 'quotation_note' => $carton->MarketingNote,
                 'produced_quantity' => $carton->ProductQTY ?? 0,
@@ -587,8 +593,6 @@ class exportController extends Controller
             'message' => 'Data exported successfully!',
         ]);
     }
-
-
     public function insertProduct()
     {
         // Define file paths for JSON files
@@ -681,7 +685,7 @@ class exportController extends Controller
                 'order_type' => $order_type,
                 'order_quantity' => $carton->CTNQTY ?? 0,
                 'currency' => $carton->CtnCurrency,
-                'manual_grade' => 50,
+                'manual_grade' => $carton->GrdPrice ?? 0,
                 'unit_price' => $carton->CTNPrice ?? 0,
                 'total_price' => $carton->CTNTotalPrice ?? 0,
                 'glue_cost' => 0,
@@ -780,7 +784,7 @@ class exportController extends Controller
                     $detials[] = [
                         'product_id' => $carton->CTNId,
                         'paper_name' => isset($carton->$paperNameKey) ? trim($carton->$paperNameKey) : null, // Remove leading/trailing spaces
-                        'paper_gsm' => 125, // Assuming GSM is always 125, you can adjust if needed
+                        'paper_gsm' => $carton->$paperNameKey == ' BB' ? 250 : 125, // Assuming GSM is always 125, you can adjust if needed
                         'paper_price' => $carton->$paperPriceKey,
                         'created_at' => now(),
                         'updated_at' => now(),
@@ -807,9 +811,6 @@ class exportController extends Controller
 
         return response()->json(['success' => 200, 'total_processed' => $totalProcessed]);
     }
-
-
-
     public function insertPaper()
     {
         $productDetailsFilePath = storage_path('app/bgpkg_product_details.json');
@@ -852,7 +853,7 @@ class exportController extends Controller
 
             // Fetch new customer
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('created_at', $customer?->CusRegistrationDate)
+                ->where('id',  $customer->CustId)
                 ->first();
 
             // Fetch order related to die
@@ -1009,8 +1010,7 @@ class exportController extends Controller
                 continue;
             }
             $new_customer = DB::table('baheer-group-for-test.bgpkg_customers')
-                ->where('customer_name', 'like', '%' . $customer?->CustName . '%')
-                ->where('created_at', $customer?->CusRegistrationDate)
+                ->where('id',  $customer->CustId)
                 ->first();
 
             // Fetch order related to die
@@ -1264,16 +1264,14 @@ class exportController extends Controller
     {
         // Fetch all cartons with valid JobNo and status filtering
         $cartons = DB::table('carton')
-            ->whereNotNull('JobNo')
-            ->whereNotIn('CTNStatus', ['OnlyProduct', 'Disable', 'Dconfirm', 'Deactive'])
-            ->get();
+            ->whereNotNull('JobNo')->get();
 
         $jobData = [];
         $historyData = [];
 
         foreach ($cartons as $carton) {
             // Generate the job number
-            $jobNumber = 'BGPKG' . $carton->JobNo;
+            $jobNumber =  $carton->JobNo;
 
             // Map status and location based on CTNStatus
             $statusLocationMap = [
@@ -1305,9 +1303,8 @@ class exportController extends Controller
                 'job_number' => $jobNumber,
                 'status' => $status,
                 'location' => $location,
-                'old_status' => $carton->CTNStatus,
                 'type' => $type,
-                'deadline' => null,
+                'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s') == '-0001-11-30 00:00:00' ? null : Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
                 'operation' => null,
                 'bgpkg_order_id' => $carton->CTNId,
                 'branch_id' => 1,
@@ -1409,13 +1406,12 @@ class exportController extends Controller
             $updatedAt = isset($job['updated_at']) ? Carbon::parse($job['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_jobs`
-            (id, job_number, status, location, old_status, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            (id, job_number, status, location, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?)', [
                 $job['id'],
                 $job['job_number'],
                 $job['status'],
                 $job['location'],
-                $job['old_status'],
                 $job['type'],
                 $job['deadline'],
                 $job['operation'],
@@ -1888,6 +1884,7 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Machine productions inserted successfully!']);
     }
+
     public function sales()
     {
         $machines = DB::table('cartonsales')->get();
@@ -1913,9 +1910,9 @@ class exportController extends Controller
                 'reference' => 'reference',
                 'bgpkg_customer_id' => $new_customer->id,
                 'type' => 'invoice',
-                'branch_id' => 1,
                 'grand' => $machine->SaleTotalPrice ?? 0,
                 'tax' =>  0,
+                'branch' => 'main Branch',
                 'charges' => 0,
                 'discount' => 0,
                 'note' => $machine->SaleComment,
@@ -1992,13 +1989,13 @@ class exportController extends Controller
             $updatedAt = Carbon::parse($sale['updated_at'])->format('Y-m-d H:i:s');
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_sales`
-            (id, reference, bgpkg_customer_id, type, branch_id, grand, tax, charges, discount, note, location, created_at, updated_at)
+            (id, reference, bgpkg_customer_id, type, branch, grand, tax, charges, discount, note, location, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $sale['id'],
                 $sale['reference'],
                 $sale['bgpkg_customer_id'],
                 $sale['type'],
-                $sale['branch_id'],
+                $sale['branch'],
                 $sale['grand'],
                 $sale['tax'],
                 $sale['charges'],
@@ -2164,7 +2161,7 @@ class exportController extends Controller
                 'comment' => $machine->FollowComment,
                 'result' =>  $machine->FollowResult,
                 'status' => 'ongoing', //the datanot in the old system becaus we selected the ongiong
-                'followed_by' => $new_employee->employee_id,
+                'followed_by' => $new_employee?->employee_id,
                 'assignee' => null,
                 'followable_type' => $model,
                 'followable_id ' => $machine->CtnIdFollow ?? 0,
@@ -2263,6 +2260,51 @@ class exportController extends Controller
         File::put($orderJsonPath, $orderJsonData);
         return response()->json(['success' => 200]);
     }
+    public function stockInOneREcord()
+    {
+        // Grouping by CtnId1 and summing ProOutQty
+        $productions = DB::table('cartonproduction')
+            ->select('CtnId1', DB::raw('SUM(ProOutQty) as total_quantity'))
+            ->whereNotNull('StockInDate')
+            ->groupBy('CtnId1')
+            ->get();
+
+        $array = [];
+        $notFound = 0;
+
+        foreach ($productions as $product) {
+            // Fetch job and carton data based on CtnId1
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CtnId1)->first();
+            $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
+
+            if (!$job) {
+                $notFound += 1;
+                echo $notFound;
+                continue;
+            }
+
+            $array[] = [
+                'id' => $product->CtnId1,
+                'quantity' => $product->total_quantity ?? 0,
+                'location' => $carton->CTNUnit ?? '', // Assuming location is retrieved based on CtnId1
+                'type' => $carton->CTNUnit ?? '',
+                'bgpkg_job_id' => $job->id,
+                'created_at' => now(), // If needed, you can customize this
+                'updated_at' => now()
+            ];
+        }
+
+        $orderJsonPath = storage_path('app/bgpkg_stocks.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_stocks',
+            'data' => $array,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+        return response()->json(['success' => 200]);
+    }
+
     public function insertStockIn()
     {
         // Path to the JSON file
