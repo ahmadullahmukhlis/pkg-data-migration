@@ -334,8 +334,6 @@ class exportController extends Controller
         return response()->json(['message' => 'Data inserted successfully!']);
     }
 
-
-
     public function customer()
     {
         // Retrieve all customers from the ppcustomer table
@@ -670,7 +668,7 @@ class exportController extends Controller
     }
     public function order()
     {
-        $cartons = DB::table('carton')->get();
+        $cartons = DB::table('carton')->where('CTNStatus', '!=', 'New')->get();
         $ordermappedData = [];
         $total = 1;
 
@@ -1121,18 +1119,32 @@ class exportController extends Controller
                 // Use optional chaining to avoid errors if $employee is null
                 $employee_id = $employee?->employee_id;
             }
+            $carton = DB::table('carton')->where('CTNId', $design->CaId)->first();
+            if (!$carton) {
+                continue;
+            }
+            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
 
-            // Determine status
-            $status = match ($design->DesignStatus) {
-                'Done' => 'Done',
-                'Submit for design', 'Sent for design' => 'New',
-                'Submit for Making' => 'Done',
-                'Processing' => 'Design Start',
-                'Sent For Approval' => 'Sent for Approval',
-                'Pending' => 'Design Complete',
-                'Reject' => 'Rejected',
-                default => 'New',
-            };
+            if (!$order) {
+                continue;
+            }
+            $status = 'Done';
+            if ($carton->CTNStatus == 'Design') {
+                $status = 'New';
+            } elseif ($carton->CTNStatus == 'DesignProcess') {
+                $status = 'New';
+            }
+            // // Determine status
+            // $status = match ($design->DesignStatus) {
+            //     'Done' => 'Done',
+            //     'Submit for design', 'Sent for design' => 'New',
+            //     'Submit for Making' => 'Done',
+            //     'Processing' => 'Design Start',
+            //     'Sent For Approval' => 'Sent for Approval',
+            //     'Pending' => 'Design Complete',
+            //     'Reject' => 'Rejected',
+            //     default => 'New',
+            // };
 
             // Prepare design data
             $desgined[] = [
@@ -1265,25 +1277,34 @@ class exportController extends Controller
         // Fetch all cartons with valid JobNo and status filtering
         $cartons = DB::table('carton')
             ->whereNotNull('JobNo')->get();
-
         $jobData = [];
         $historyData = [];
-
+        $not = 0;
         foreach ($cartons as $carton) {
             // Generate the job number
             $jobNumber =  $carton->JobNo;
-
+            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
+            if ($carton->JobNo == NULL) {
+                echo $carton->JobNo . ' -  <JOB NUMBER ';
+                $not += 1;
+                continue;
+            }
+            if (!$order) {
+                // $not += 1;
+                echo $carton->CTNId . ' -  < ORDER ';
+                continue;
+            }
             // Map status and location based on CTNStatus
             $statusLocationMap = [
                 'Archive' => ['status' => 'new', 'location' => 'archive'],
                 'Completed' => ['status' => 'completed', 'location' => 'complete'],
-                'New' => ['status' => 'new', 'location' => 'finance'],
+                // 'New' => ['status' => 'new', 'location' => 'finance'],
                 'Cancel' => ['status' => 'rejected', 'location' => 'cancel'],
                 'Production Process' => ['status' => 'process', 'location' => 'production process'],
                 'Printing' => ['status' => 'new', 'location' => 'printing press'],
                 'DesignProcess' => ['status' => 'process', 'location' => 'Design'],
                 'Fconfirm' => ['status' => 'new', 'location' => 'film'],
-                'Production Pending' => ['status' => 'process', 'location' => 'printing press'],
+                'Production Pending' => ['status' => 'postponed', 'location' => 'production new'],
                 'Production' => ['status' => 'new', 'location' => 'production new'],
                 'Pospond' => ['status' => 'postponed', 'location' => 'film'],
                 'Design' => ['status' => 'new', 'location' => 'Design'],
@@ -1306,10 +1327,10 @@ class exportController extends Controller
                 'type' => $type,
                 'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s') == '-0001-11-30 00:00:00' ? null : Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
                 'operation' => null,
-                'bgpkg_order_id' => $carton->CTNId,
+                'bgpkg_order_id' => $order->id,
                 'branch_id' => 1,
                 'plan_status' => 'new',
-                'produced_quantity' => 0,
+                'produced_quantity' => $carton->ProductQTY ?? 0,
                 'created_at' => $carton->job_order_date ?? now(),
                 'updated_at' => now(),
             ];
@@ -1369,7 +1390,7 @@ class exportController extends Controller
         ], JSON_PRETTY_PRINT);
         File::put($historyJsonPath, $historyJsonContent);
 
-        return response()->json(['success' => 200]);
+        return response()->json(['success' => 200, 'not found' => $not]);
     }
     public function insertJob()
     {
@@ -1897,7 +1918,7 @@ class exportController extends Controller
             $customer = DB::table('ppcustomer')->where('CustId',  $machine->SaleCustomerId)->first();
             if (!$customer) {
                 $not += 1;
-                echo $not . '</br>';
+                echo $not . '</>';
                 continue;
             }
 
