@@ -2363,19 +2363,17 @@ class exportController extends Controller
     {
         $notFound = 0;
         $not = 0;
+
         $stocks = DB::table('cartonstockout')->get();
 
         $array = [];
         $details = [];
         foreach ($stocks as $stock) {
-            $ppCustomer = DB::table('ppcustomer')->where('CustId', $stock->CtnCustomerId)->first();
-            if (!$ppCustomer) {
-                continue;
-            }
-            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $ppCustomer->CustId)->first();
+
+            $customer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $stock->CtnCustomerId)->first();
             if (!$customer) {
-                $notFound += 1;
-                echo 'customer not found ' . $notFound . '<br>';
+
+                echo 'customer not found cusotmer ' . +1 . '<br>';
                 continue;
             }
             $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->PrStockId)->first();
