@@ -1120,11 +1120,10 @@ class exportController extends Controller
                 $employee_id = $employee?->employee_id;
             }
             $carton = DB::table('carton')->where('CTNId', $design->CaId)->first();
+            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
             if (!$carton) {
                 continue;
             }
-            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
-
             if (!$order) {
                 continue;
             }
@@ -1276,22 +1275,18 @@ class exportController extends Controller
     {
         // Fetch all cartons with valid JobNo and status filtering
         $cartons = DB::table('carton')
-            ->whereNotNull('JobNo')->get();
+            ->where('JobNo', '!=', 'NULL')->get();
         $jobData = [];
         $historyData = [];
         $not = 0;
+        $found = 0;
         foreach ($cartons as $carton) {
             // Generate the job number
             $jobNumber =  $carton->JobNo;
             $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
-            if ($carton->JobNo == NULL) {
-                echo $carton->JobNo . ' -  <JOB NUMBER ';
-                $not += 1;
-                continue;
-            }
+
             if (!$order) {
-                // $not += 1;
-                echo $carton->CTNId . ' -  < ORDER ';
+                $not += 1;
                 continue;
             }
             // Map status and location based on CTNStatus
@@ -1317,7 +1312,7 @@ class exportController extends Controller
 
             // Determine job type
             $type = $carton->JobType === 'Normal' ? 'Normal' : 'Urgent';
-
+            $found += 1;
             // Build job data array
             $jobData[] = [
                 'id' => $carton->CTNId,
@@ -1327,7 +1322,7 @@ class exportController extends Controller
                 'type' => $type,
                 'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s') == '-0001-11-30 00:00:00' ? null : Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
                 'operation' => null,
-                'bgpkg_order_id' => $order->id,
+                'bgpkg_order_id' => $carton->CTNId,
                 'branch_id' => 1,
                 'plan_status' => 'new',
                 'produced_quantity' => $carton->ProductQTY ?? 0,
@@ -1389,8 +1384,7 @@ class exportController extends Controller
             'data' => $historyData,
         ], JSON_PRETTY_PRINT);
         File::put($historyJsonPath, $historyJsonContent);
-
-        return response()->json(['success' => 200, 'not found' => $not]);
+        return response()->json(['success' => 200, 'not found' => $not, 'found' => $found]);
     }
     public function insertJob()
     {
