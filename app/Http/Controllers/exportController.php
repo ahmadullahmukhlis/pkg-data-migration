@@ -2263,45 +2263,7 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Follow-ups inserted successfully!']);
     }
-    public function stockIn()
-    {
-        $productions = DB::table('cartonproduction')->whereNotNull('StockInDate')->get();
-        $array = [];
-        $notFound = 0;
-        foreach ($productions as $product) {
-            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CtnId1)->first();
 
-            $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
-            $user = DB::table('employeet')->where('EId', $product->ProSubmitBy)->first();
-            $emp = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
-            if (!$job) {
-                $notFound += 1;
-                echo $notFound;
-                continue;
-            }
-            $stock = DB::table('baheer-group-for-test.bgpkg_stocks')->where('bgpkg_job_id', $job->id)->first();
-            $array[] = [
-                'id' => $product->ProId,
-                'bgpkg_stock_id' => $stock->id ?? 0,
-                'bgpkg_production_job_id' => null,
-                'code' => null,
-                'quantity' => $product->ProQty,
-                'comment' => $product->ProComment,
-                'created_by' => $emp->employee_id,
-                'created_at' => $product->StockInDate,
-                'updated_at' => $product->StockInDate
-            ];
-        }
-        $orderJsonPath = storage_path('app/bgpkg_stock_ins.json');
-        $orderJsonData = json_encode([
-            'type' => 'table',
-            'name' => 'bgpkg_stock_ins',
-            'data' => $array,
-        ], JSON_PRETTY_PRINT);
-
-        File::put($orderJsonPath, $orderJsonData);
-        return response()->json(['success' => 200]);
-    }
     public function stockInOneREcord()
     {
         // Grouping by CtnId1 and summing ProOutQty
@@ -2386,6 +2348,87 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Stock-in data inserted successfully!']);
     }
+    public function checkIn()
+    {
+        $productions = DB::table('cartonproduction')->whereNotNull('StockInDate')->get();
+        $array = [];
+        $notFound = 0;
+        foreach ($productions as $product) {
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CtnId1)->first();
+
+            $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
+            $user = DB::table('employeet')->where('EId', $product->ProSubmitBy)->first();
+            $emp = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
+            if (!$job) {
+                $notFound += 1;
+                echo $notFound;
+                continue;
+            }
+            $stock = DB::table('baheer-group-for-test.bgpkg_stocks')->where('bgpkg_job_id', $job->id)->first();
+            $array[] = [
+                'id' => $product->ProId,
+                'bgpkg_stock_id' => $stock->id ?? 0,
+                'bgpkg_production_job_id' => null,
+                'code' => null,
+                'quantity' => $product->ProQty ?? 0,
+                'comment' => $product->ProComment ?? 'old data',
+                'created_by' => $emp->employee_id,
+                'created_at' => $product->StockInDate,
+                'updated_at' => $product->StockInDate
+            ];
+        }
+        $orderJsonPath = storage_path('app/bgpkg_stock_ins.json');
+        $orderJsonData = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_stock_ins',
+            'data' => $array,
+        ], JSON_PRETTY_PRINT);
+
+        File::put($orderJsonPath, $orderJsonData);
+        return response()->json(['success' => 200]);
+    }
+    public function insertCheckIn()
+    {
+        // Path to the JSON file
+        $checkInJsonFilePath = storage_path('app/bgpkg_stock_ins.json');
+
+        // Check if the file exists
+        if (!File::exists($checkInJsonFilePath)) {
+            return response()->json(['error' => 'Check-in JSON file not found'], 404);
+        }
+
+        // Read and decode the check-in JSON file
+        $checkInJson = File::get($checkInJsonFilePath);
+        $checkInJsonData = json_decode($checkInJson, true);
+
+        // Validate JSON structure
+        if (!is_array($checkInJsonData) || !isset($checkInJsonData['data'])) {
+            return response()->json(['error' => 'Invalid check-in JSON structure'], 400);
+        }
+
+        // Insert check-in data into the 'bgpkg_stock_ins' table
+        foreach ($checkInJsonData['data'] as $checkIn) {
+            $createdAt = isset($checkIn['created_at']) ? Carbon::parse($checkIn['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($checkIn['updated_at']) ? Carbon::parse($checkIn['updated_at'])->format('Y-m-d H:i:s') : now();
+
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stock_ins`
+        (id, bgpkg_stock_id, bgpkg_production_job_id, code, quantity, comment, created_by, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $checkIn['id'],
+                $checkIn['bgpkg_stock_id'],
+                $checkIn['bgpkg_production_job_id'],
+                $checkIn['code'],
+                $checkIn['quantity'],
+                $checkIn['comment'],
+                $checkIn['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Check-in data inserted successfully!']);
+    }
+
     public function stockOut()
     {
         $notFound = 0;
