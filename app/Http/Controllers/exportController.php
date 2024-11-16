@@ -357,10 +357,11 @@ class exportController extends Controller
             $specification = DB::table('baheer-group-for-test.specifications')
                 ->where('customer_specification', $customer->CusSpecification)
                 ->value('id');
+            $user = DB::table('employeet')->where('EId', $customer?->FollowupResponsible)->first();
 
             $assign = DB::table('baheer-group-for-test.users')
-                ->where('employee_id', $customer->FollowupResponsible)
-                ->value('id');
+                ->where('name', $user?->EUserName)
+                ->first();
             // Map the data for each customer
             $mappedData[] = [
                 'id' => $customer->CustId,
@@ -384,9 +385,9 @@ class exportController extends Controller
                 'state_id' => 8,
                 'region_id' => 3,
                 'reference_id' => $reference,
-                'created_by' => null,
+                'created_by' => $assign?->id,
                 'approved_by' => null,
-                'assign_to' => $assign,
+                'assign_to' => $assign?->id,
                 'bussness_nature' => $customer->BusinessNature,
                 'logo' => null,
                 'extras' => null,
@@ -501,6 +502,11 @@ class exportController extends Controller
         $total = 1;
         foreach ($cartons as $carton) {
             $customer = DB::table('ppcustomer')->where('CustId', $carton->CustId1)->first();
+            $user = DB::table('employeet')->where('EId', $carton?->EmpId)->first();
+
+            $employee = DB::table('baheer-group-for-test.users')
+                ->where('name', $user?->EUserName)
+                ->first();
             if (!$customer) {
                 continue;
             }
@@ -528,7 +534,7 @@ class exportController extends Controller
                 'product_code' => $code,
                 'customer_id' => $new_customer->id,
                 'branch' => $new_customer->branch_id,
-                'product_status' => $carton->CTNStatus,
+                'product_status' => $carton->CTNStatus == 'New' ? 'prospect' : $carton->CTNStatus,
                 'product_name' => $carton->ProductName,
                 'product_type' => $carton->CTNUnit == 'Separator' ? 'Seperator' : $carton->CTNUnit,
                 'length' => $carton->CTNLength,
@@ -567,7 +573,7 @@ class exportController extends Controller
                 'produced_quantity' => $carton->ProductQTY ?? 0,
                 'stockout_quantity' => 0,
                 'agreement' => null,
-                'created_by' => null,
+                'created_by' => $employee?->id,
                 'created_at' => $carton->CTNOrderDate,
                 'updated_at' => $carton->CTNOrderDate,
             ];
