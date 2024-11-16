@@ -432,8 +432,8 @@ class exportController extends Controller
                 'contactable_type' => 'App\Models\Bgpkg\BgpkgCustomer',
                 'contactable_id' => $new_customer->id,
                 'created_by' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $customer->CusRegistrationDate,
+                'updated_at' => $customer->CusRegistrationDate,
             ];
         }
 
@@ -895,8 +895,8 @@ class exportController extends Controller
                 'bgpkg_order_id' => $order->CTNId ?? null,
                 'created_by' => null,
                 'branch_id' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => null,
+                'updated_at' => null
             ];
 
             // Collect scratch (sckach) file data
@@ -2201,8 +2201,8 @@ class exportController extends Controller
                 'assignee' => null,
                 'followable_type' => $model,
                 'followable_id ' => $machine->CtnIdFollow ?? 0,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => $machine->FollowDate,
+                'updated_at' => $machine->FollowDate
             ];
         }
 
@@ -2266,11 +2266,11 @@ class exportController extends Controller
 
     public function stockInOneREcord()
     {
-        // Grouping by CtnId1 and summing ProOutQty
+        // Grouping by CtnId1 and summing ProOutQty, including StockInDate in select if needed
         $productions = DB::table('cartonproduction')
-            ->select('CtnId1', DB::raw('SUM(ProOutQty) as total_quantity'))
+            ->select('CtnId1', DB::raw('SUM(ProOutQty) as total_quantity'), 'StockInDate')
             ->whereNotNull('StockInDate')
-            ->groupBy('CtnId1')
+            ->groupBy('CtnId1', 'StockInDate') // Group by both CtnId1 and StockInDate if needed
             ->get();
 
         $array = [];
@@ -2293,8 +2293,8 @@ class exportController extends Controller
                 'location' => $carton->CTNUnit ?? '', // Assuming location is retrieved based on CtnId1
                 'type' => $carton->CTNUnit ?? '',
                 'bgpkg_job_id' => $job->id,
-                'created_at' => now(), // If needed, you can customize this
-                'updated_at' => now()
+                'created_at' => $product->StockInDate, // Providing default if StockInDate is null
+                'updated_at' => $product->StockInDate
             ];
         }
 
@@ -2308,6 +2308,7 @@ class exportController extends Controller
         File::put($orderJsonPath, $orderJsonData);
         return response()->json(['success' => 200]);
     }
+
 
     public function insertStockIn()
     {
@@ -2334,9 +2335,9 @@ class exportController extends Controller
             $updatedAt = isset($stock['updated_at']) ? Carbon::parse($stock['updated_at'])->format('Y-m-d H:i:s') : now();
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stocks`
-            (id, quantity, location, type, bgpkg_job_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)', [
-                $stock['id'],
+            ( quantity, location, type, bgpkg_job_id, created_at, updated_at)
+            VALUES ( ?, ?, ?, ?, ?, ?)', [
+
                 $stock['quantity'],
                 $stock['location'],
                 $stock['type'],
