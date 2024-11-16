@@ -905,7 +905,7 @@ class exportController extends Controller
                     'name' => $die->Scatch,
                     'file_name' => $die->Scatch,
                     'mime_type' => 'application/pdf',
-                    'path' => storage_path("app/public/bgpkg/dies/{$die->Scatch}"),
+                    'path' => 'bgpkg/dies/' . $die->Scatch,
                     'disk' => 'public',
                     'file_hash' => '',
                     'collection' => '',
@@ -1188,7 +1188,7 @@ class exportController extends Controller
                     'name' => $design->DesignImage,
                     'file_name' => $design->DesignImage,
                     'mime_type' => 'application/pdf',
-                    'path' => storage_path("app/public/bgpkg/designs/{$design->DesignImage}"),
+                    'path' => 'bgpkg/designs/' . $design->DesignImage,
                     'disk' => 'public',
                     'file_hash' => '', // You might need to calculate this
                     'collection' => '', // Fill collection if applicable
