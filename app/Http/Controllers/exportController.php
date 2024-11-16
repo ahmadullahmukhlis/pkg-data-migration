@@ -678,6 +678,24 @@ class exportController extends Controller
                 $order_type = 'Re Order';
             } elseif ($carton->CTNStatus == 'New') {
                 $order_type = 'Quotation';
+            } elseif ($carton->CTNStatus == 'Cancel') {
+                $order_type = 'Order Canceled';
+            } elseif ($carton->CTNStatus == 'Archive') {
+                $order_type = 'Archive';
+            } elseif ($carton->CTNStatus == 'Printing') {
+                $order_type = 'Quotation Canceled';
+            } elseif ($carton->CTNStatus == 'Disable') {
+                $product = DB::table('baheer-group-for-test.bgpkg_products')
+                    ->where('id',  $carton->CTNId)
+                    ->update([
+                        'product_status' => 'inactive'
+                    ]);
+            } elseif ($carton->CTNStatus == 'Deactive') {
+                $product = DB::table('baheer-group-for-test.bgpkg_products')
+                    ->where('id',  $carton->CTNId)
+                    ->update([
+                        'product_status' => 'inactive'
+                    ]);
             }
             $ordermappedData[] = [
                 'id' => $carton->CTNId,
