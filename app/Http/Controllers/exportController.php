@@ -1634,7 +1634,8 @@ class exportController extends Controller
     }
     public function jobPolymer()
     {
-        $designs = DB::table('designinfo')->whereNotNull('film_start_date')->get();
+        $designs = DB::table('designinfo')->where('DesignDep', 'Archive')->get();
+
         $desgined = [];
 
         foreach ($designs as $design) {
@@ -1656,13 +1657,13 @@ class exportController extends Controller
             $desgined[] = [
                 'id' => $design->DesignId,
                 'start' => $design->film_start_date,
-                'end' => $design->film_complete_date ?? now(),
+                'end' => $design->film_complete_date,
                 'status' => $status,
                 'assignee' => $employee_id,
                 'bgpkg_job_id' => $bgpkgJob->id,
                 'bgpkg_polymer_id' => null,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => $design->film_complete_date,
+                'updated_at' => $design->film_complete_date
             ];
         }
 
