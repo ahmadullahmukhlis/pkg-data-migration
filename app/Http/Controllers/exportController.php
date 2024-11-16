@@ -2358,7 +2358,7 @@ class exportController extends Controller
 
             $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
             $user = DB::table('employeet')->where('EId', $product->ProSubmitBy)->first();
-            $emp = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
+            $emp = DB::table('baheer-group-for-test.users')->where('name', $user?->EUserName)->first();
             if (!$job) {
                 $notFound += 1;
                 echo $notFound;
@@ -2369,10 +2369,10 @@ class exportController extends Controller
                 'id' => $product->ProId,
                 'bgpkg_stock_id' => $stock->id ?? 0,
                 'bgpkg_production_job_id' => null,
-                'code' => null,
+                'code' => $product->ProId,
                 'quantity' => $product->ProQty ?? 0,
                 'comment' => $product->ProComment ?? 'old data',
-                'created_by' => $emp->employee_id,
+                'created_by' => $emp?->employee_id,
                 'created_at' => $product->StockInDate,
                 'updated_at' => $product->StockInDate
             ];
