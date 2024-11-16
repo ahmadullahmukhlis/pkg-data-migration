@@ -668,7 +668,7 @@ class exportController extends Controller
     }
     public function order()
     {
-        $cartons = DB::table('carton')->where('CTNStatus', '!=', 'New')->get();
+        $cartons = DB::table('carton')->get();
         $ordermappedData = [];
         $total = 1;
 
@@ -676,6 +676,8 @@ class exportController extends Controller
             $order_type = 'New Order';
             if ($carton->reorder_status == 'Yes') {
                 $order_type = 'Re Order';
+            } elseif ($carton->CTNStatus == 'New') {
+                $order_type = 'Quotation';
             }
             $ordermappedData[] = [
                 'id' => $carton->CTNId,
