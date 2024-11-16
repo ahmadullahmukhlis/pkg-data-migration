@@ -494,6 +494,25 @@ class exportController extends Controller
         // Return a success response
         return response()->json(['message' => 'Data saved successfully!']);
     }
+
+    public function updateCustomer()
+    {
+        $ppCustomers = DB::table('ppcustomer')->get();
+        foreach ($ppCustomers as $customer) {
+            $branch = DB::table('baheer-group-for-test.branches')->where('name', $customer?->AgencyName)->first();
+            if ($branch) {
+                $pkgCustomer = DB::table('baheer-group-for-test.bgpkg_customers')->where('id', $customer?->CustId)->first();
+                if ($pkgCustomer) {
+                    DB::table('baheer-group-for-test.bgpkg_customers')
+                        ->where('id', $pkgCustomer->id)
+                        ->update([
+                            'branch_id' => $branch->id
+                        ]);
+                }
+            }
+        }
+    }
+
     public function product()
     {
         // Retrieve all customers from the ppcustomer table
@@ -1503,7 +1522,7 @@ class exportController extends Controller
         //     ]);
         // }
 
-        Insert history data into the 'bgpkg_job_histories' table
+        // Insert history data into the 'bgpkg_job_histories' table
         foreach ($historyData['data'] as $history) {
             $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
