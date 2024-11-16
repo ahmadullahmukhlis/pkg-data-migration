@@ -1140,10 +1140,11 @@ class exportController extends Controller
                 $employee_id = $employee?->employee_id;
             }
             $carton = DB::table('carton')->where('CTNId', $design->CaId)->first();
-            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
+
             if (!$carton) {
                 continue;
             }
+            $order = DB::table('baheer-group-for-test.bgpkg_orders')->whereIn('order_type', ['Re Order', 'New Order'])->where('id', $carton->CTNId)->first();
             if (!$order) {
                 continue;
             }
@@ -1177,8 +1178,8 @@ class exportController extends Controller
                 'designable_id' => $design->CaId,
                 'designable_type' => 'App\Models\Bgpkg\BgpkgOrder',
                 'comment' => 'The old System Data is here',
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => $design->DesignStartTime,
+                'updated_at' => $design->CompleteTime
             ];
 
             // Prepare media data if DesignImage exists
@@ -1347,7 +1348,7 @@ class exportController extends Controller
                 'plan_status' => 'new',
                 'produced_quantity' => $carton->ProductQTY ?? 0,
                 'created_at' => $carton->job_order_date ?? now(),
-                'updated_at' => now(),
+                'updated_at' => $carton->CTNFinishDate == '0005-03-25' ? null : $carton->CTNFinishDate,
             ];
 
             // Fetch history for each carton
