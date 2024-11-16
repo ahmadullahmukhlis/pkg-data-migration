@@ -568,8 +568,8 @@ class exportController extends Controller
                 'stockout_quantity' => 0,
                 'agreement' => null,
                 'created_by' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $carton->CTNOrderDate,
+                'updated_at' => $carton->CTNOrderDate,
             ];
 
 
@@ -716,8 +716,8 @@ class exportController extends Controller
                 'profit_cost' => 0,
                 'depreciation' => 0,
                 'exchange_rate' => $carton->PexchangeUSD ?? 0,
-                'created_at' => $carton->CTNOrderDate ?? now(),
-                'updated_at' => now(),
+                'created_at' => $carton->CTNOrderDate,
+                'updated_at' => $carton->CTNOrderDate,
             ];
             echo 'the total is  =  ' . ++$total . '<br/>';
         }
@@ -804,8 +804,8 @@ class exportController extends Controller
                         'paper_name' => isset($carton->$paperNameKey) ? trim($carton->$paperNameKey) : null, // Remove leading/trailing spaces
                         'paper_gsm' => $carton->$paperNameKey == ' BB' ? 250 : 125, // Assuming GSM is always 125, you can adjust if needed
                         'paper_price' => $carton->$paperPriceKey,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at' => $carton->CTNOrderDate,
+                        'updated_at' => $carton->CTNOrderDate,
                     ];
                 }
             }
@@ -1052,8 +1052,8 @@ class exportController extends Controller
                 'bgpkg_order_id' => $order->CTNId ?? null,
                 'created_by' => null,
                 'branch_id' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => $die->MakeDate,
+                'updated_at' => $die->MakeDate
             ];
 
             $iteration++; // Increment the counter after each loop
@@ -2270,26 +2270,32 @@ class exportController extends Controller
         $notFound = 0;
         foreach ($productions as $product) {
             $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $product->CtnId1)->first();
+
             $carton = DB::table('carton')->where('CTNId', $product->CtnId1)->first();
+            $user = DB::table('employeet')->where('EId', $product->ProSubmitBy)->first();
+            $emp = DB::table('baheer-group-for-test.users')->where('name', $user->EUserName)->first();
             if (!$job) {
                 $notFound += 1;
                 echo $notFound;
                 continue;
             }
+            $stock = DB::table('baheer-group-for-test.bgpkg_stocks')->where('bgpkg_job_id', $job->id)->first();
             $array[] = [
                 'id' => $product->ProId,
-                'quantity' => $product->ProQty ?? 0,
-                'location' => $product->ProBrach ?? '',
-                'type' => $carton->CTNUnit,
-                'bgpkg_job_id' => $job->id,
+                'bgpkg_stock_id' => $stock->id ?? 0,
+                'bgpkg_production_job_id' => null,
+                'code' => null,
+                'quantity' => $product->ProQty,
+                'comment' => $product->ProComment,
+                'created_by' => $emp->employee_id,
                 'created_at' => $product->StockInDate,
-                'updated_at' => now()
+                'updated_at' => $product->StockInDate
             ];
         }
-        $orderJsonPath = storage_path('app/bgpkg_stocks.json');
+        $orderJsonPath = storage_path('app/bgpkg_stock_ins.json');
         $orderJsonData = json_encode([
             'type' => 'table',
-            'name' => 'bgpkg_stocks',
+            'name' => 'bgpkg_stock_ins',
             'data' => $array,
         ], JSON_PRETTY_PRINT);
 
@@ -2397,10 +2403,10 @@ class exportController extends Controller
                 echo 'customer not found cusotmer ' . +1 . '<br>';
                 continue;
             }
-            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->PrStockId)->first();
+            $job = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $stock->CtnJobNo)->first();
             if (!$job) {
                 $not += 1;
-                echo 'job not found ' . $stock->PrStockId . '" "' . $not . '<br>';
+                echo 'job not found ' . $stock->CtnJobNo . '" "' . $not . '<br>';
                 continue;
             }
             $array[] = [
@@ -2421,8 +2427,8 @@ class exportController extends Controller
                 'checked_by' => null,
                 'finance_status' => 'Approved',
                 'finance_by' => null,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' => $stock->OutDateTime,
+                'updated_at' =>  $stock->OutDateTime
             ];
             $details[] = [
                 'bgpkg_stock_delivery_id' => $stock->CtnoutId,
@@ -2430,8 +2436,8 @@ class exportController extends Controller
                 'memo' => 'memo',
                 'quantity' => $stock->CtnOutQty,
                 'reason' => null,
-                'created_at' => now(),
-                'updated_at' => now()
+                'created_at' =>  $stock->OutDateTime,
+                'updated_at' =>  $stock->OutDateTime
             ];
         }
         $orderJsonPath = storage_path('app/bgpkg_stock_deliveries.json');
