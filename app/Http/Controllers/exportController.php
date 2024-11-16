@@ -391,7 +391,7 @@ class exportController extends Controller
                 'logo' => null,
                 'extras' => null,
                 'created_at' => $customer->CusRegistrationDate,
-                'updated_at' => now(),
+                'updated_at' => $customer->CusRegistrationDate,
             ];
         }
 
