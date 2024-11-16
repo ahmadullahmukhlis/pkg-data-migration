@@ -2269,7 +2269,6 @@ class exportController extends Controller
         // Grouping by CtnId1 and summing ProOutQty, including StockInDate in select if needed
         $productions = DB::table('cartonproduction')
             ->select('CtnId1', DB::raw('SUM(ProOutQty) as total_quantity'), 'StockInDate')
-            ->whereNotNull('StockInDate')
             ->groupBy('CtnId1', 'StockInDate') // Group by both CtnId1 and StockInDate if needed
             ->get();
 
@@ -2351,7 +2350,7 @@ class exportController extends Controller
     }
     public function checkIn()
     {
-        $productions = DB::table('cartonproduction')->whereNotNull('StockInDate')->get();
+        $productions = DB::table('cartonproduction')->get();
         $array = [];
         $notFound = 0;
         foreach ($productions as $product) {
