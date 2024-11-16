@@ -967,33 +967,33 @@ class exportController extends Controller
         }
 
         // Insert die data into the 'bgpkg_dies' table
-        foreach ($dieJsonData['data'] as $die) {
-            $createdAt = isset($die['created_at']) ? Carbon::parse($die['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($die['updated_at']) ? Carbon::parse($die['updated_at'])->format('Y-m-d H:i:s') : now();
+        // foreach ($dieJsonData['data'] as $die) {
+        //     $createdAt = isset($die['created_at']) ? Carbon::parse($die['created_at'])->format('Y-m-d H:i:s') : now();
+        //     $updatedAt = isset($die['updated_at']) ? Carbon::parse($die['updated_at'])->format('Y-m-d H:i:s') : now();
 
-            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_dies`
-                (id, number, app, size, status, code, location, type, simple, shelf, made, property, bgpkg_customer_id, bgpkg_order_id, created_by, branch_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-                $die['id'],
-                $die['number'],
-                $die['app'],
-                $die['size'],
-                $die['status'],
-                $die['code'],
-                $die['location'],
-                $die['type'],
-                $die['simple'],
-                $die['shelf'],
-                $die['made'],
-                $die['property'],
-                $die['bgpkg_customer_id'],
-                $die['bgpkg_order_id'],
-                $die['created_by'],
-                $die['branch_id'],
-                $createdAt,
-                $updatedAt,
-            ]);
-        }
+        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_dies`
+        //         (id, number, app, size, status, code, location, type, simple, shelf, made, property, bgpkg_customer_id, bgpkg_order_id, created_by, branch_id, created_at, updated_at)
+        //         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        //         $die['id'],
+        //         $die['number'],
+        //         $die['app'],
+        //         $die['size'],
+        //         $die['status'],
+        //         $die['code'],
+        //         $die['location'],
+        //         $die['type'],
+        //         $die['simple'],
+        //         $die['shelf'],
+        //         $die['made'],
+        //         $die['property'],
+        //         $die['bgpkg_customer_id'],
+        //         $die['bgpkg_order_id'],
+        //         $die['created_by'],
+        //         $die['branch_id'],
+        //         $createdAt,
+        //         $updatedAt,
+        //     ]);
+        // }
 
         // Insert sckach (scratch file) data into the 'media' table
         foreach ($sckachJsonData['data'] as $sckach) {
@@ -1250,27 +1250,27 @@ class exportController extends Controller
         }
 
         // Insert design data into the 'bgpkg_designs' table
-        foreach ($designJsonData['data'] as $design) {
-            $createdAt = isset($design['created_at']) ? Carbon::parse($design['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($design['updated_at']) ? Carbon::parse($design['updated_at'])->format('Y-m-d H:i:s') : now();
+        // foreach ($designJsonData['data'] as $design) {
+        //     $createdAt = isset($design['created_at']) ? Carbon::parse($design['created_at'])->format('Y-m-d H:i:s') : now();
+        //     $updatedAt = isset($design['updated_at']) ? Carbon::parse($design['updated_at'])->format('Y-m-d H:i:s') : now();
 
-            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_designs`
-            (id, deadline, start, end, code, status, assignee, designable_id, designable_type, comment, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-                $design['id'],
-                $design['deadline'],
-                $design['start'],
-                $design['end'],
-                $design['code'],
-                $design['status'],
-                $design['assignee'],
-                $design['designable_id'],
-                $design['designable_type'],
-                $design['comment'],
-                $createdAt,
-                $updatedAt,
-            ]);
-        }
+        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_designs`
+        //     (id, deadline, start, end, code, status, assignee, designable_id, designable_type, comment, created_at, updated_at)
+        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        //         $design['id'],
+        //         $design['deadline'],
+        //         $design['start'],
+        //         $design['end'],
+        //         $design['code'],
+        //         $design['status'],
+        //         $design['assignee'],
+        //         $design['designable_id'],
+        //         $design['designable_type'],
+        //         $design['comment'],
+        //         $createdAt,
+        //         $updatedAt,
+        //     ]);
+        // }
 
         // Insert media data into the 'media' table
         foreach ($mediaJsonData['data'] as $media) {
