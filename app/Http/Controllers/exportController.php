@@ -1347,7 +1347,7 @@ class exportController extends Controller
                 'branch_id' => 1,
                 'plan_status' => 'new',
                 'produced_quantity' => $carton->ProductQTY ?? 0,
-                'created_at' => $carton->job_order_date ?? now(),
+                'created_at' => $carton->job_order_date,
                 'updated_at' => $carton->CTNFinishDate == '0005-03-25' ? null : $carton->CTNFinishDate,
             ];
 
