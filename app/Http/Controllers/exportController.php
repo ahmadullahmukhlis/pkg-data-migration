@@ -1302,25 +1302,29 @@ class exportController extends Controller
     {
         // Fetch all cartons with valid JobNo and status filtering
         $cartons = DB::table('carton')
-            ->where('JobNo', '!=', 'NULL')->get();
+            ->whereNotNull('JobNo')
+            ->get();
+
         $jobData = [];
         $historyData = [];
-        $not = 0;
-        $found = 0;
+        $feedbackData = [];
+        $notFoundCount = 0;
+        $foundCount = 0;
+
         foreach ($cartons as $carton) {
             // Generate the job number
-            $jobNumber =  $carton->JobNo;
+            $jobNumber = $carton->JobNo;
             $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
 
             if (!$order) {
-                $not += 1;
+                $notFoundCount++;
                 continue;
             }
+
             // Map status and location based on CTNStatus
             $statusLocationMap = [
                 'Archive' => ['status' => 'new', 'location' => 'archive'],
                 'Completed' => ['status' => 'completed', 'location' => 'complete'],
-                // 'New' => ['status' => 'new', 'location' => 'finance'],
                 'Cancel' => ['status' => 'rejected', 'location' => 'cancel'],
                 'Production Process' => ['status' => 'process', 'location' => 'production process'],
                 'Printing' => ['status' => 'new', 'location' => 'printing press'],
@@ -1339,7 +1343,8 @@ class exportController extends Controller
 
             // Determine job type
             $type = $carton->JobType === 'Normal' ? 'Normal' : 'Urgent';
-            $found += 1;
+            $foundCount++;
+
             // Build job data array
             $jobData[] = [
                 'id' => $carton->CTNId,
@@ -1347,14 +1352,14 @@ class exportController extends Controller
                 'status' => $status,
                 'location' => $location,
                 'type' => $type,
-                'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s') == '-0001-11-30 00:00:00' ? null : Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
+                'deadline' => Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s') === '-0001-11-30 00:00:00' ? null : Carbon::parse($carton->CTNFinishDate)->format('Y-m-d H:i:s'),
                 'operation' => null,
                 'bgpkg_order_id' => $carton->CTNId,
                 'branch_id' => 1,
                 'plan_status' => 'new',
                 'produced_quantity' => $carton->ProductQTY ?? 0,
                 'created_at' => $carton->job_order_date,
-                'updated_at' => $carton->CTNFinishDate == '0005-03-25' ? null : $carton->CTNFinishDate,
+                'updated_at' => $carton->CTNFinishDate === '0005-03-25' ? null : $carton->CTNFinishDate,
             ];
 
             // Fetch history for each carton
@@ -1363,23 +1368,23 @@ class exportController extends Controller
             foreach ($histories as $item) {
                 // Fetch user details
                 $user = DB::table('employeet')->where('EId', $item->EmpId1)->first();
-                $employee_id = null;
+                $employeeId = null;
 
                 // Ensure the user exists before trying to fetch the employee data
                 if ($user) {
                     $employee = DB::table('users')->where('name', $user->EUserName)->first();
-                    $employee_id = $employee?->employee_id; // Safe navigation
+                    $employeeId = $employee?->employee_id; // Safe navigation
                 }
-                $itemType = '';
-                if ($item->ComDepartment == 'Finance') {
-                    $itemType = 'finance';
-                } else if ($item->ComDepartment == 'Design') {
-                    $itemType = 'Design';
-                } else if ($item->ComDepartment == 'Archive') {
-                    $itemType = 'archive';
-                } else if ($item->ComDepartment == 'Printing') {
-                    $itemType = 'printing press';
-                }
+
+                // Determine item type for location
+                $itemType = match ($item->ComDepartment) {
+                    'Finance' => 'finance',
+                    'Design' => 'Design',
+                    'Archive' => 'archive',
+                    'Printing' => 'printing press',
+                    default => 'other',
+                };
+
                 // Build history data array
                 $historyData[] = [
                     'bgpkg_job_id' => $carton->CTNId,
@@ -1387,9 +1392,20 @@ class exportController extends Controller
                     'location' => $itemType,
                     'entered_at' => $item->ComDate,
                     'exited_at' => $item->EndDate,
-                    'created_by' => $employee_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_by' => $employeeId,
+                    'created_at' => $item->ComDate,
+                    'updated_at' => $item->ComDate,
+                ];
+
+                // Build feedback data array
+                $feedbackData[] = [
+                    'bgpkg_job_id' => $carton->CTNId,
+                    'status' => $status,
+                    'location' => $itemType,
+                    'reason' => $item->EmpComment,
+                    'created_by' => $employee?->employee_id,
+                    'created_at' => $item->ComDate,
+                    'updated_at' => $item->ComDate,
                 ];
             }
         }
@@ -1411,16 +1427,28 @@ class exportController extends Controller
             'data' => $historyData,
         ], JSON_PRETTY_PRINT);
         File::put($historyJsonPath, $historyJsonContent);
-        return response()->json(['success' => 200, 'not found' => $not, 'found' => $found]);
+
+        // Write feedback data to the bgpkg_job_feedback.json file
+        $feedbackJsonPath = storage_path('app/bgpkg_job_feedback.json');
+        $feedbackJsonContent = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_job_feedback',
+            'data' => $feedbackData,
+        ], JSON_PRETTY_PRINT);
+        File::put($feedbackJsonPath, $feedbackJsonContent);
+
+        return response()->json(['success' => 200, 'not found' => $notFoundCount, 'found' => $foundCount]);
     }
+
     public function insertJob()
     {
         // Paths to the JSON files
         $jobJsonFilePath = storage_path('app/bgpkg_jobs.json');
         $historyJsonFilePath = storage_path('app/bgpkg_job_histories.json');
+        $feedbackJsonFilePath = storage_path('app/bgpkg_job_feedback.json');
 
         // Check if the files exist
-        if (!File::exists($jobJsonFilePath) || !File::exists($historyJsonFilePath)) {
+        if (!File::exists($jobJsonFilePath) || !File::exists($historyJsonFilePath) || !File::exists($feedbackJsonFilePath)) {
             return response()->json(['error' => 'JSON files not found'], 404);
         }
 
@@ -1432,6 +1460,10 @@ class exportController extends Controller
         $historyJson = File::get($historyJsonFilePath);
         $historyData = json_decode($historyJson, true);
 
+        // Read and decode the feedback JSON file
+        $feedbackJson = File::get($feedbackJsonFilePath);
+        $feedbackData = json_decode($feedbackJson, true);
+
         // Validate JSON structure for job data
         if (!is_array($jobData) || !isset($jobData['data'])) {
             return response()->json(['error' => 'Invalid job JSON structure'], 400);
@@ -1442,35 +1474,40 @@ class exportController extends Controller
             return response()->json(['error' => 'Invalid history JSON structure'], 400);
         }
 
-        // Insert job data into the 'bgpkg_jobs' table
-        foreach ($jobData['data'] as $job) {
-            $createdAt = isset($job['created_at']) ? Carbon::parse($job['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($job['updated_at']) ? Carbon::parse($job['updated_at'])->format('Y-m-d H:i:s') : now();
-
-            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_jobs`
-            (id, job_number, status, location, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?)', [
-                $job['id'],
-                $job['job_number'],
-                $job['status'],
-                $job['location'],
-                $job['type'],
-                $job['deadline'],
-                $job['operation'],
-                $job['bgpkg_order_id'],
-                $job['branch_id'],
-                $job['plan_status'],
-                $job['produced_quantity'],
-                $createdAt,
-                $updatedAt,
-            ]);
+        // Validate JSON structure for feedback data
+        if (!is_array($feedbackData) || !isset($feedbackData['data'])) {
+            return response()->json(['error' => 'Invalid feedback JSON structure'], 400);
         }
 
-        // Insert history data into the 'bgpkg_job_histories' table
+        // Insert job data into the 'bgpkg_jobs' table (commented out section kept as per original code)
+        // foreach ($jobData['data'] as $job) {
+        //     $createdAt = isset($job['created_at']) ? Carbon::parse($job['created_at'])->format('Y-m-d H:i:s') : now();
+        //     $updatedAt = isset($job['updated_at']) ? Carbon::parse($job['updated_at'])->format('Y-m-d H:i:s') : now();
+
+        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_jobs`
+        //     (id, job_number, status, location, type, deadline, operation, bgpkg_order_id, branch_id, plan_status, produced_quantity, created_at, updated_at)
+        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        //         $job['id'],
+        //         $job['job_number'],
+        //         $job['status'],
+        //         $job['location'],
+        //         $job['type'],
+        //         $job['deadline'],
+        //         $job['operation'],
+        //         $job['bgpkg_order_id'],
+        //         $job['branch_id'],
+        //         $job['plan_status'],
+        //         $job['produced_quantity'],
+        //         $createdAt,
+        //         $updatedAt,
+        //     ]);
+        // }
+
+        Insert history data into the 'bgpkg_job_histories' table
         foreach ($historyData['data'] as $history) {
             $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
-
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_histories`
             (bgpkg_job_id, status, location, entered_at, exited_at, created_by, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
@@ -1485,8 +1522,28 @@ class exportController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Jobs and histories inserted successfully!']);
+        // Insert feedback data into the 'bgpkg_job_feedback' table
+        foreach ($feedbackData['data'] as $feedback) {
+            $createdAt = isset($feedback['created_at']) ? Carbon::parse($feedback['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($feedback['updated_at']) ? Carbon::parse($feedback['updated_at'])->format('Y-m-d H:i:s') : now();
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_feedback`
+            (bgpkg_job_id, status, location, reason, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                $feedback['bgpkg_job_id'],
+                $feedback['status'],
+                $feedback['location'],
+                $feedback['reason'] ?? 'default comment',
+                $feedback['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Jobs, histories, and feedback inserted successfully!']);
     }
+
+
     public function machine()
     {
         $machines = DB::table('machine')->get();
