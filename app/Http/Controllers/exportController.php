@@ -2762,4 +2762,53 @@ class exportController extends Controller
         }
         return response()->json(['message' => 'Stock-out data inserted successfully!']);
     }
+    public function updateProduct()
+    {
+        $cartons = DB::table('carton')->get();
+        $ProductmappedData = [];
+        $total = 1;
+        foreach ($cartons as $carton) {
+            $polymer = 'New';
+            if ($carton->polymer_info == '' || $carton->polymer_info == NULL) {
+                $polymer = Null;
+            } else if ($carton->polymer_info == 'Polymer Exist') {
+                $polymer = 'Exist';
+            } else if ($carton->polymer_info == 'No Print') {
+                $polymer = 'No Print';
+            } else if ($carton->polymer_info == 'Free Polymer') {
+                $polymer = 'Free';
+            } else if ($carton->polymer_info == 'Personal Polymer') {
+                $polymer = 'Personal';
+            }
+
+            $die = 'New';
+            if ($carton->die_info == '' || $carton->die_info == NULL) {
+                $die = Null;
+            } else if ($carton->die_info == 'No Die') {
+                $die = 'No Die';
+            } else if ($carton->die_info == 'Die Exist') {
+                $die = 'Exist';
+            } else if ($carton->die_info == 'New Die') {
+                $die = 'New';
+            } else if ($carton->die_info == 'Free Die') {
+                $die = 'Free';
+            }
+            // Product mapped data
+            $ProductmappedData[] = [
+                'id' => $carton->CTNId,
+                'polymer' => $polymer,
+                'die' => $die
+            ];
+
+            $orderJsonPath = storage_path('app/update_bgpkg_products.json');
+            $orderJsonData = json_encode([
+                'type' => 'table',
+                'name' => 'bgpkg_products',
+                'data' => $ProductmappedData,
+            ], JSON_PRETTY_PRINT);
+
+            File::put($orderJsonPath, $orderJsonData);
+            echo 'the total is  =  ' . ++$total . '<br/>';
+        }
+    }
 }
