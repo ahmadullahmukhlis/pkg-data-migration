@@ -1423,7 +1423,7 @@ class exportController extends Controller
                 $feedbackData[] = [
                     'bgpkg_job_id' => $carton->CTNId,
                     'status' => $status,
-                    'location' => $itemType,
+                    'location' => $location,
                     'reason' => $item->EmpComment,
                     'created_by' => $employee?->employee_id,
                     'created_at' => $item->ComDate,
@@ -1526,49 +1526,60 @@ class exportController extends Controller
         // }
 
         // Insert history data into the 'bgpkg_job_histories' table
-        foreach ($historyData['data'] as $history) {
-            $jobs = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $history['bgpkg_job_id'])->first();
-            $historExist = DB::table('baheer-group-for-test.bgpkg_job_histories')->where('bgpkg_job_id', $history['bgpkg_job_id'])->where('location', $history['location'])->first();
-            if (!$jobs) {
-                continue;
-            }
-            if ($historExist) {
-                continue;
-            }
-            $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_histories`
-            (bgpkg_job_id, status, location, entered_at, exited_at, created_by, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
-                $history['bgpkg_job_id'],
-                $history['status'],
-                $history['location'],
-                $history['entered_at'],
-                $history['exited_at'],
-                $history['created_by'],
-                $createdAt,
-                $updatedAt,
-            ]);
-        }
-
-        // Insert feedback data into the 'bgpkg_job_feedback' table
-        // foreach ($feedbackData['data'] as $feedback) {
-        //     $createdAt = isset($feedback['created_at']) ? Carbon::parse($feedback['created_at'])->format('Y-m-d H:i:s') : now();
-        //     $updatedAt = isset($feedback['updated_at']) ? Carbon::parse($feedback['updated_at'])->format('Y-m-d H:i:s') : now();
+        // foreach ($historyData['data'] as $history) {
+        //     $jobs = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $history['bgpkg_job_id'])->first();
+        //     $historExist = DB::table('baheer-group-for-test.bgpkg_job_histories')->where('bgpkg_job_id', $history['bgpkg_job_id'])->where('location', $history['location'])->first();
+        //     if (!$jobs) {
+        //         continue;
+        //     }
+        //     if ($historExist) {
+        //         continue;
+        //     }
+        //     $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
+        //     $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
         //     DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_feedback`
-        //     (bgpkg_job_id, status, location, reason, created_by, created_at, updated_at)
-        //     VALUES (?, ?, ?, ?, ?, ?, ?)', [
-        //         $feedback['bgpkg_job_id'],
-        //         $feedback['status'],
-        //         $feedback['location'],
-        //         $feedback['reason'] ?? 'default comment',
-        //         $feedback['created_by'],
+        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_histories`
+        //     (bgpkg_job_id, status, location, entered_at, exited_at, created_by, created_at, updated_at)
+        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+        //         $history['bgpkg_job_id'],
+        //         $history['status'],
+        //         $history['location'],
+        //         $history['entered_at'],
+        //         $history['exited_at'],
+        //         $history['created_by'],
         //         $createdAt,
         //         $updatedAt,
         //     ]);
         // }
+
+        // Insert feedback data into the 'bgpkg_job_feedback' table
+        foreach ($feedbackData['data'] as $feedback) {
+            $carton = Db::table('carton')->whereNotIn('CTNStatus', ['New', 'Cancel', 'Completed', 'Pospond', 'FNew'])->where('CTNId', $feedback['bgpkg_job_id'])->first();
+            if (!$carton) {
+                continue;
+            }
+            $jobs = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $feedback['bgpkg_job_id'])->first();
+
+            if (!$jobs) {
+                continue;
+            }
+            $createdAt = isset($feedback['created_at']) ? Carbon::parse($feedback['created_at'])->format('Y-m-d H:i:s') : now();
+            $updatedAt = isset($feedback['updated_at']) ? Carbon::parse($feedback['updated_at'])->format('Y-m-d H:i:s') : now();
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_feedback`
+            (bgpkg_job_id, status, location, reason, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)', [
+                $feedback['bgpkg_job_id'],
+                // $feedback['status'],
+                'process',
+                // $feedback['location'],
+                'finance',
+                $feedback['reason'] ?? 'default comment',
+                $feedback['created_by'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
 
         return response()->json(['message' => 'Jobs, histories, and feedback inserted successfully!']);
     }
