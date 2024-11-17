@@ -1656,10 +1656,10 @@ class exportController extends Controller
     }
     public function jobPolymer()
     {
-        $designs = DB::table('designinfo')->where('DesignDep', 'Archive')->get();
+        $designs = DB::table('designinfo')->whereNotNull('film_status')->get();
 
         $desgined = [];
-
+        $die = [];
         foreach ($designs as $design) {
             $employee_id = 110;
 
@@ -1687,6 +1687,18 @@ class exportController extends Controller
                 'created_at' => $design->film_complete_date,
                 'updated_at' => $design->film_complete_date
             ];
+
+            $die[] = [
+                'id' => $design->DesignId,
+                'start' => $design->film_start_date,
+                'end' => $design->film_complete_date,
+                'status' => $status,
+                'assignee' => $employee_id,
+                'bgpkg_job_id' => $bgpkgJob->id,
+                'bgpkg_polymer_id' => null,
+                'created_at' => $design->film_complete_date,
+                'updated_at' => $design->film_complete_date
+            ];
         }
 
         // Correctly encode the design data and write to the JSON file
@@ -1697,6 +1709,14 @@ class exportController extends Controller
             'data' => $desgined, // Correctly add the designed data here
         ], JSON_PRETTY_PRINT);
         File::put($designJsonPath, $designFile);
+
+        $diePath = storage_path('app/bgpkg_job_dies.json');
+        $dieFile = json_encode([
+            'type' => 'table',
+            'name' => 'bgpkg_job_dies',
+            'data' => $desgined, // Correctly add the designed data here
+        ], JSON_PRETTY_PRINT);
+        File::put($diePath, $dieFile);
 
         return response()->json(['success' => 200]);
     }
