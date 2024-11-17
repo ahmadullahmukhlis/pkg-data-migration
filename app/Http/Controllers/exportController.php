@@ -1275,27 +1275,27 @@ class exportController extends Controller
         }
 
         // Insert design data into the 'bgpkg_designs' table
-        // foreach ($designJsonData['data'] as $design) {
-        //     $createdAt = isset($design['created_at']) ? Carbon::parse($design['created_at'])->format('Y-m-d H:i:s') : now();
-        //     $updatedAt = isset($design['updated_at']) ? Carbon::parse($design['updated_at'])->format('Y-m-d H:i:s') : now();
+        foreach ($designJsonData['data'] as $design) {
+            $createdAt = isset($design['created_at']) ? Carbon::parse($design['created_at'])->format('Y-m-d H:i:s') : null;
+            $updatedAt = isset($design['updated_at']) ? Carbon::parse($design['updated_at'])->format('Y-m-d H:i:s') : null;
 
-        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_designs`
-        //     (id, deadline, start, end, code, status, assignee, designable_id, designable_type, comment, created_at, updated_at)
-        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        //         $design['id'],
-        //         $design['deadline'],
-        //         $design['start'],
-        //         $design['end'],
-        //         $design['code'],
-        //         $design['status'],
-        //         $design['assignee'],
-        //         $design['designable_id'],
-        //         $design['designable_type'],
-        //         $design['comment'],
-        //         $createdAt,
-        //         $updatedAt,
-        //     ]);
-        // }
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_designs`
+            (id, deadline, start, end, code, status, assignee, designable_id, designable_type, comment, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $design['id'],
+                $design['deadline'],
+                $design['start'],
+                $design['end'],
+                $design['code'],
+                $design['status'],
+                $design['assignee'],
+                $design['designable_id'],
+                $design['designable_type'],
+                $design['comment'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
 
         // Insert media data into the 'media' table
         foreach ($mediaJsonData['data'] as $media) {
@@ -2435,8 +2435,8 @@ class exportController extends Controller
 
         // Insert stock data into the 'bgpkg_stocks' table
         foreach ($stockJsonData['data'] as $stock) {
-            $createdAt = isset($stock['created_at']) ? Carbon::parse($stock['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($stock['updated_at']) ? Carbon::parse($stock['updated_at'])->format('Y-m-d H:i:s') : now();
+            $createdAt = isset($stock['created_at']) ? Carbon::parse($stock['created_at'])->format('Y-m-d H:i:s') : null;
+            $updatedAt = isset($stock['updated_at']) ? Carbon::parse($stock['updated_at'])->format('Y-m-d H:i:s') : null;
 
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_stocks`
             ( quantity, location, type, bgpkg_job_id, created_at, updated_at)
