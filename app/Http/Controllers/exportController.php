@@ -1661,7 +1661,6 @@ class exportController extends Controller
         $desgined = [];
         $die = [];
         foreach ($designs as $design) {
-            $employee_id = null;
             $user = DB::table('employeet')->where('EId', $design?->film_assigned_to)->first();
 
             $assign = DB::table('baheer-group-for-test.users')
@@ -1700,7 +1699,7 @@ class exportController extends Controller
                 'status' => $status,
                 'assignee' => $employee_id,
                 'bgpkg_job_id' => $bgpkgJob->id,
-                'bgpkg_polymer_id' => null,
+                'bgpkg_die_id' => null,
                 'created_at' => $design->film_complete_date,
                 'updated_at' => $design->film_complete_date
             ];
@@ -1795,7 +1794,7 @@ class exportController extends Controller
             $updatedAt = Carbon::parse($die['updated_at'])->format('Y-m-d H:i:s');
             // Insert the data into the database
             DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_dies`
-            (id, start, end, status, assignee, bgpkg_job_id, bgpkg_polymer_id, created_at, updated_at)
+            (id, start, end, status, assignee, bgpkg_job_id, bgpkg_die_id, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
                 $die['id'],
                 $start,
@@ -1803,7 +1802,7 @@ class exportController extends Controller
                 $die['status'],
                 $die['assignee'],
                 $die['bgpkg_job_id'],
-                $die['bgpkg_polymer_id'],
+                $die['bgpkg_die_id'],
                 $createdAt,
                 $updatedAt,
             ]);
