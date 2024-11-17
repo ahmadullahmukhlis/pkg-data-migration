@@ -1388,7 +1388,10 @@ class exportController extends Controller
                 // Fetch user details
                 $user = DB::table('employeet')->where('EId', $item->EmpId1)->first();
                 $employeeId = null;
-
+                $jobs = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $carton->CTNId)->first();
+                if (!$jobs) {
+                    continue;
+                }
                 // Ensure the user exists before trying to fetch the employee data
                 if ($user) {
                     $employee = DB::table('users')->where('name', $user->EUserName)->first();
@@ -1408,7 +1411,7 @@ class exportController extends Controller
                 $historyData[] = [
                     'bgpkg_job_id' => $carton->CTNId,
                     'status' => $status,
-                    'location' => $itemType,
+                    'location' => $location,
                     'entered_at' => $item->ComDate,
                     'exited_at' => $item->EndDate,
                     'created_by' => $employeeId,
@@ -1524,6 +1527,14 @@ class exportController extends Controller
 
         // Insert history data into the 'bgpkg_job_histories' table
         foreach ($historyData['data'] as $history) {
+            $jobs = DB::table('baheer-group-for-test.bgpkg_jobs')->where('id', $history['bgpkg_job_id'])->first();
+            $historExist = DB::table('baheer-group-for-test.bgpkg_job_histories')->where('bgpkg_job_id', $history['bgpkg_job_id'])->where('location', $history['location'])->first();
+            if (!$jobs) {
+                continue;
+            }
+            if ($historExist) {
+                continue;
+            }
             $createdAt = isset($history['created_at']) ? Carbon::parse($history['created_at'])->format('Y-m-d H:i:s') : now();
             $updatedAt = isset($history['updated_at']) ? Carbon::parse($history['updated_at'])->format('Y-m-d H:i:s') : now();
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
@@ -1542,22 +1553,22 @@ class exportController extends Controller
         }
 
         // Insert feedback data into the 'bgpkg_job_feedback' table
-        foreach ($feedbackData['data'] as $feedback) {
-            $createdAt = isset($feedback['created_at']) ? Carbon::parse($feedback['created_at'])->format('Y-m-d H:i:s') : now();
-            $updatedAt = isset($feedback['updated_at']) ? Carbon::parse($feedback['updated_at'])->format('Y-m-d H:i:s') : now();
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_feedback`
-            (bgpkg_job_id, status, location, reason, created_by, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)', [
-                $feedback['bgpkg_job_id'],
-                $feedback['status'],
-                $feedback['location'],
-                $feedback['reason'] ?? 'default comment',
-                $feedback['created_by'],
-                $createdAt,
-                $updatedAt,
-            ]);
-        }
+        // foreach ($feedbackData['data'] as $feedback) {
+        //     $createdAt = isset($feedback['created_at']) ? Carbon::parse($feedback['created_at'])->format('Y-m-d H:i:s') : now();
+        //     $updatedAt = isset($feedback['updated_at']) ? Carbon::parse($feedback['updated_at'])->format('Y-m-d H:i:s') : now();
+        //     DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        //     DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_feedback`
+        //     (bgpkg_job_id, status, location, reason, created_by, created_at, updated_at)
+        //     VALUES (?, ?, ?, ?, ?, ?, ?)', [
+        //         $feedback['bgpkg_job_id'],
+        //         $feedback['status'],
+        //         $feedback['location'],
+        //         $feedback['reason'] ?? 'default comment',
+        //         $feedback['created_by'],
+        //         $createdAt,
+        //         $updatedAt,
+        //     ]);
+        // }
 
         return response()->json(['message' => 'Jobs, histories, and feedback inserted successfully!']);
     }
