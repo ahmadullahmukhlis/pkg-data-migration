@@ -1661,10 +1661,15 @@ class exportController extends Controller
         $desgined = [];
         $die = [];
         foreach ($designs as $design) {
-            $employee_id = 110;
+            $employee_id = null;
+            $user = DB::table('employeet')->where('EId', $design?->film_assigned_to)->first();
 
+            $assign = DB::table('baheer-group-for-test.users')
+                ->where('name', $user?->EUserName)
+                ->first();
+            $employee_id = $assign?->employee_id;
             // Determine status
-            $status = match ($design->DesignStatus) {
+            $status = match ($design->film_status) {
                 null => 'New',
                 'Complete' => 'Done',
                 'Assigned' => 'Assigned',
@@ -1762,8 +1767,51 @@ class exportController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Job polymers inserted successfully!']);
+        // Additional code for inserting job die data
+
+        // Path to the job dies JSON file
+        $jobDieJsonFilePath = storage_path('app/bgpkg_job_dies.json');
+
+        // Check if the JSON file exists
+        if (!File::exists($jobDieJsonFilePath)) {
+            return response()->json(['error' => 'Job die JSON file not found'], 404);
+        }
+
+        // Read and decode the job die JSON file
+        $jobDieJson = File::get($jobDieJsonFilePath);
+        $jobDieData = json_decode($jobDieJson, true);
+
+        // Validate the JSON structure
+        if (!is_array($jobDieData) || !isset($jobDieData['data'])) {
+            return response()->json(['error' => 'Invalid job die JSON structure'], 400);
+        }
+
+        // Insert job die data into the 'bgpkg_job_dies' table
+        foreach ($jobDieData['data'] as $die) {
+            // Convert the dates to MySQL's datetime format
+            $start = Carbon::parse($die['start'])->format('Y-m-d H:i:s');
+            $end = Carbon::parse($die['end'])->format('Y-m-d H:i:s');
+            $createdAt = Carbon::parse($die['created_at'])->format('Y-m-d H:i:s');
+            $updatedAt = Carbon::parse($die['updated_at'])->format('Y-m-d H:i:s');
+            // Insert the data into the database
+            DB::insert('INSERT INTO `baheer-group-for-test`.`bgpkg_job_dies`
+            (id, start, end, status, assignee, bgpkg_job_id, bgpkg_polymer_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+                $die['id'],
+                $start,
+                $end,
+                $die['status'],
+                $die['assignee'],
+                $die['bgpkg_job_id'],
+                $die['bgpkg_polymer_id'],
+                $createdAt,
+                $updatedAt,
+            ]);
+        }
+
+        return response()->json(['message' => 'Job polymers and job dies inserted successfully!']);
     }
+
     public function productionCycle()
     {
         $productionCycle = [];
