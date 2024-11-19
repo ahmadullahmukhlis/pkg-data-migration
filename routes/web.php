@@ -7,6 +7,6 @@ use Illuminate\Support\Facades\Route;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
-Route::get('/', [exportController::class, 'updateProduct']);
+Route::get('/', [exportController::class, 'insertDesign']);
 // Route::get('/home', [testcontroller::class, 'index']);
 //SELECT * FROM `contacts` WHERE contactable_type = 'App\\Models\\Bgpkg\\BgpkgCustomer';

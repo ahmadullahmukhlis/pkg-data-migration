@@ -1169,7 +1169,7 @@ class exportController extends Controller
             if (!$carton) {
                 continue;
             }
-            $order = DB::table('baheer-group-for-test.bgpkg_orders')->whereIn('order_type', ['Re Order', 'New Order'])->where('id', $carton->CTNId)->first();
+            $order = DB::table('baheer-group-for-test.bgpkg_orders')->where('id', $carton->CTNId)->first();
             if (!$order) {
                 continue;
             }
