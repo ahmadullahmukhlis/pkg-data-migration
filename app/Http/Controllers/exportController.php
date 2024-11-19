@@ -1317,6 +1317,7 @@ class exportController extends Controller
 
         return response()->json(['message' => 'Designs and associated media inserted successfully!']);
     }
+
     public function job()
     {
         // Fetch all cartons with valid JobNo and status filtering
@@ -2303,29 +2304,63 @@ class exportController extends Controller
         $notFound = 0;
 
         // Fetch all designs with status 'New' and specific designable_type
-        $designs = DB::table('baheer-group-for-test.bgpkg_designs')
-            ->where('status', 'New')
-            ->where('designable_type', 'App\Models\Bgpkg\BgpkgOrder')
-            ->get();
+        $designs = DB::table('baheer-group-for-test.bgpkg_designs')->get();
 
         foreach ($designs as $desgn) {
             // Find the corresponding job
-            $job = DB::table('baheer-group-for-test.bgpkg_jobs')
-                ->where('bgpkg_order_id', $desgn->designable_id)
+            $bgpkg = DB::table('baheer-group.bgpkg_designs')
+                ->where('id', $desgn->id)
+                ->where('start', $desgn->start)
+                ->where('end', $desgn->end)
+                ->where('end', $desgn->end)
+                ->where('status', $desgn->status)
+                ->where('designable_id', $desgn->designable_id)
                 ->first();
 
-            if ($job) {
-                // Update the design status using the query builder
-                DB::table('baheer-group-for-test.bgpkg_designs')
-                    ->where('id', $desgn->id)
-                    ->update(['status' => 'Done']);
-            } else {
-                // Increment and display not found counter
-                $notFound += 1;
-                echo $notFound . '<br/>';
+            if ($bgpkg) {
+                continue;
+            }
+            $desgined[] = [
+                'deadline' => $desgn->deadline,
+                'start' => $desgn->start,
+                'end' => $desgn->end,
+                'code' => $desgn->code,
+                'status' => $desgn->status,
+                'assignee' => $desgn->assignee,
+                'designable_id' => $desgn->designable_id,
+                'designable_type' => 'App\Models\Bgpkg\BgpkgOrder',
+                'comment' => 'The old System Data is here',
+                'created_at' => $desgn->created_at,
+                'updated_at' => $desgn->updated_at
+            ];
+            $design =    DB::table('designinfo')->where('DesignId', $desgn->id)->first();
+            if ($design->DesignImage) {
+                $media[] = [
+                    'name' => $design->DesignImage,
+                    'file_name' => $design->DesignImage,
+                    'mime_type' => 'application/pdf',
+                    'path' => 'bgpkg/designs/' . $design->DesignImage,
+                    'disk' => 'public',
+                    'file_hash' => '', // You might need to calculate this
+                    'collection' => '', // Fill collection if applicable
+                    'size' => 2, // Assuming the size, adjust as needed
+                    'mediable_type' => 'App\Models\Bgpkg\BgpkgDesign',
+                    'mediable_id' => $design->DesignId
+                ];
             }
         }
-
+        $detialsPath = storage_path('app/update_bgpkg_design.json');
+        $detialsJson = json_encode([
+            'data' => $desgined,
+        ], JSON_PRETTY_PRINT);
+        File::put($detialsPath, $detialsJson);
+        $mediaJsonPath = storage_path('app/update_design_media.json');
+        $mediaFile = json_encode([
+            'type' => 'table',
+            'name' => 'media',
+            'data' => $media, // Correctly add the media data here
+        ], JSON_PRETTY_PRINT);
+        File::put($mediaJsonPath, $mediaFile);
         return response()->json(['success' => 'The table is updated successfully']);
     }
     public function followup()
