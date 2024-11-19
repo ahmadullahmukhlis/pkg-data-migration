@@ -2321,6 +2321,7 @@ class exportController extends Controller
                 continue;
             }
             $desgined[] = [
+                'id' => $desgn->id,
                 'deadline' => $desgn->deadline,
                 'start' => $desgn->start,
                 'end' => $desgn->end,
